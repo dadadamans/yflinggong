@@ -1,0 +1,46 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="eyebrow">子女端</text>
+    <text class="page-title">留言沟通</text>
+    <text class="page-desc">这里单独做轻量留言板，只负责提醒和沟通，不混入资料和订单展示，角色边界更清楚。</text>
+  </view>
+
+  <view class="section">
+    <view class="nav-strip nav-strip-four" style="margin-bottom: 18rpx;">
+      <navigator url="/pages/bind/index" class="nav-chip">
+        <text class="nav-chip-title">绑定老人</text>
+      </navigator>
+      <navigator url="/pages/child/publish/index" class="nav-chip">
+        <text class="nav-chip-title">发布任务</text>
+      </navigator>
+      <navigator url="/pages/child/profile/index" class="nav-chip">
+        <text class="nav-chip-title">老人资料</text>
+      </navigator>
+      <navigator url="/pages/child/orders/index" class="nav-chip">
+        <text class="nav-chip-title">订单查看</text>
+      </navigator>
+    </view>
+    <view class="nav-strip" style="margin-bottom: 18rpx;">
+      <navigator url="/pages/child/messages/index" class="nav-chip nav-chip-active">
+        <text class="nav-chip-title">留言沟通</text>
+      </navigator>
+      <navigator url="/pages/home/index" class="nav-chip">
+        <text class="nav-chip-title">工作台</text>
+      </navigator>
+      <view></view>
+    </view>
+
+    <view class="message-card">
+      <view class="message-board">
+        <view wx:for="{{messages}}" wx:key="id" class="{{item.bubbleClass}}">
+          {{item.content}}
+        </view>
+      </view>
+      <view class="input-group">
+        <text class="input-label">新增留言</text>
+        <input class="input" value="{{messageInput}}" bindinput="onMessageInput" placeholder="输入想提醒老人的内容" />
+      </view>
+      <button class="btn-accent btn-block" style="margin-top: 20rpx;" bindtap="sendMessage">发送留言</button>
+    </view>
+  </view>
+</view>

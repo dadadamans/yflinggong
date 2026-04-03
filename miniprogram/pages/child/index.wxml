@@ -1,0 +1,64 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="eyebrow">子女端</text>
+    <text class="page-title">子女工作台</text>
+    <text class="page-desc">子女端只保留三件事：绑定老人、查看老人资料和订单、留言沟通，不出现发布任务和代接单入口。</text>
+  </view>
+
+  <view class="section">
+    <view class="summary-grid">
+      <view class="summary-card">
+        <text class="summary-value">{{bindStatusText}}</text>
+        <text class="summary-label">绑定状态</text>
+      </view>
+      <view class="summary-card">
+        <text class="summary-value">{{activeOrderCount}}</text>
+        <text class="summary-label">进行中订单</text>
+      </view>
+      <view class="summary-card">
+        <text class="summary-value">{{profileNameText}}</text>
+        <text class="summary-label">当前老人</text>
+      </view>
+      <view class="summary-card">
+        <text class="summary-value">留言</text>
+        <text class="summary-label">可随时提醒老人</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="nav-strip nav-strip-four">
+      <navigator url="/pages/bind/index" class="nav-chip">
+        <text class="nav-chip-title">绑定老人</text>
+      </navigator>
+      <navigator url="/pages/child/publish/index" class="nav-chip">
+        <text class="nav-chip-title">发布任务</text>
+      </navigator>
+      <navigator url="/pages/child/profile/index" class="nav-chip">
+        <text class="nav-chip-title">老人资料</text>
+      </navigator>
+      <navigator url="/pages/child/orders/index" class="nav-chip">
+        <text class="nav-chip-title">订单查看</text>
+      </navigator>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="nav-strip">
+      <navigator url="/pages/child/messages/index" class="nav-chip">
+        <text class="nav-chip-title">留言沟通</text>
+      </navigator>
+      <navigator url="/pages/home/index" class="nav-chip">
+        <text class="nav-chip-title">工作台</text>
+      </navigator>
+      <view></view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="notice-card">
+      <text class="notice-title">最近留言</text>
+      <text class="notice-text">{{latestMessage}}</text>
+    </view>
+  </view>
+</view>

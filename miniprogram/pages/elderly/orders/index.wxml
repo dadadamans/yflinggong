@@ -1,0 +1,55 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="eyebrow">老人端</text>
+    <text class="page-title">我的订单</text>
+    <text class="page-desc">这里展示老人已接单和已完成的订单状态，同时可以查看子女留言并直接回复，形成完整的沟通闭环。</text>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">订单列表</text>
+      <navigator url="/pages/elderly/tasks/index" class="section-link">继续接单</navigator>
+    </view>
+    <view class="list-stack">
+      <view wx:for="{{orders}}" wx:key="id" class="list-card">
+        <view class="tag-row">
+          <text class="soft-badge">{{item.code}}</text>
+          <text class="status-pill {{item.className}}">{{item.text}}</text>
+        </view>
+        <text class="list-title">{{item.title}}</text>
+        <text class="list-text">服务地点：{{item.address}}</text>
+        <text class="list-text">雇主：{{item.employerName}} · 报酬：¥{{item.salary}}</text>
+        <text class="list-text">开始时间：{{item.startTime}}</text>
+        <text class="list-text">完成时间：{{item.finishText}}</text>
+        <text class="list-text">结算说明：{{item.settleText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="code-card">
+      <text class="muted">当前绑定码</text>
+      <text class="bind-code">{{bindCode}}</text>
+      <text class="helper-text">子女输入这个绑定码后，就能在子女端查看老人的资料、订单和留言。</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">留言板</text>
+      <navigator url="/pages/child/index" class="section-link">查看子女端</navigator>
+    </view>
+    <view class="message-card">
+      <view class="message-board">
+        <view wx:for="{{messages}}" wx:key="id" class="{{item.bubbleClass}}">
+          {{item.content}}
+        </view>
+      </view>
+      <view class="input-group">
+        <text class="input-label">回复家人</text>
+        <input class="input" value="{{replyInput}}" bindinput="onReplyInput" placeholder="输入要回复的话" />
+      </view>
+      <button class="btn-accent btn-block" style="margin-top: 20rpx;" bindtap="sendReply">发送回复</button>
+    </view>
+  </view>
+</view>

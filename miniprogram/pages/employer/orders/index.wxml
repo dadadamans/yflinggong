@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="eyebrow">雇主端</text>
+    <text class="page-title">订单管理</text>
+    <text class="page-desc">这里单独管理订单状态，只负责查看谁接了单、任务是否进行中、以及把服务完成为“模拟已结算”。</text>
+  </view>
+
+  <view class="section">
+    <view class="nav-strip nav-strip-four">
+      <navigator url="/pages/employer/publish/index" class="nav-chip">
+        <text class="nav-chip-title">发布任务</text>
+      </navigator>
+      <navigator url="/pages/employer/tasks/index" class="nav-chip">
+        <text class="nav-chip-title">任务管理</text>
+      </navigator>
+      <navigator url="/pages/employer/orders/index" class="nav-chip nav-chip-active">
+        <text class="nav-chip-title">订单管理</text>
+      </navigator>
+      <navigator url="/pages/employer/profile/index" class="nav-chip">
+        <text class="nav-chip-title">雇主资料</text>
+      </navigator>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="list-stack">
+      <view wx:for="{{orders}}" wx:key="id" class="list-card">
+        <view class="tag-row">
+          <text class="soft-badge">{{item.code}}</text>
+          <text class="status-pill {{item.className}}">{{item.text}}</text>
+        </view>
+        <text class="list-title">{{item.title}}</text>
+        <text class="list-text">接单老人：{{item.elderlyName}}</text>
+        <text class="list-text">开始时间：{{item.startTime}}</text>
+        <text class="list-text">完成时间：{{item.finishText}}</text>
+        <text class="list-text">结算说明：{{item.settleText}}</text>
+        <button class="{{item.actionClass}}" style="margin-top: 20rpx;" data-task-id="{{item.taskId}}" data-status="{{item.status}}" bindtap="finishOrder">
+          {{item.actionText}}
+        </button>
+      </view>
+    </view>
+  </view>
+</view>
