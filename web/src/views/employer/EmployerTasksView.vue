@@ -87,6 +87,15 @@
           <button v-else-if="item.status === 'pending_payment'" class="btn" type="button" :disabled="actionLoading" @click="showPayDialog(item)">
             模拟支付
           </button>
+          <button
+            v-else-if="item.status === 'done' && !item.currentUserCommented"
+            class="btn btn-success"
+            type="button"
+            :disabled="commenting"
+            @click="openCommentDialog(item)"
+          >
+            评价老人
+          </button>
         </div>
       </article>
     </div>
@@ -339,20 +348,25 @@ async function payOrder() {
     await payOrderApi(payItem.value.id);
     successText.value = "支付成功";
     showDialog.value = false;
-    showCommentDialog.value = true;
-    commentForm.value = {
-      taskId: payItem.value.id,
-      revieweeId: payItem.value.elderlyId,
-      rating: 5,
-      content: "",
-      commentType: "employer_rate_elderly"
-    };
+    payItem.value = null;
     await loadData();
   } catch (error) {
     errorText.value = error.message || "支付失败";
   } finally {
     paying.value = false;
   }
+}
+
+function openCommentDialog(item) {
+  errorText.value = "";
+  commentForm.value = {
+    taskId: item.id,
+    revieweeId: item.elderlyId,
+    rating: 5,
+    content: "",
+    commentType: "employer_rate_elderly"
+  };
+  showCommentDialog.value = true;
 }
 
 function setRating(rating) {
@@ -369,6 +383,7 @@ async function submitComment() {
     await addComment(commentForm.value);
     showCommentDialog.value = false;
     commentForm.value = { taskId: null, revieweeId: null, rating: 5, content: "", commentType: "employer_rate_elderly" };
+    await loadData();
   } catch (error) {
     errorText.value = error.message || "评价提交失败";
   } finally {

@@ -74,17 +74,17 @@ public class TaskService {
         } else if ("employer".equals(role)) {
             return taskMapper.selectTasksByPublisherId(userId).stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toTaskItemVO)
+                    .map(row -> toTaskItemVO(row, userId))
                     .toList();
         } else if ("child".equals(role)) {
             return taskMapper.selectTasksByPublisherId(userId).stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toTaskItemVO)
+                    .map(row -> toTaskItemVO(row, userId))
                     .toList();
         }
         return taskMapper.selectTaskList().stream()
                 .map(row -> mapRowWithSalary(row, role))
-                .map(this::toTaskItemVO)
+                .map(row -> toTaskItemVO(row, userId))
                 .toList();
     }
 
@@ -121,13 +121,13 @@ public class TaskService {
             if (childIds == null || childIds.isEmpty()) {
                 list = taskMapper.selectWaitingTasksPage(pageQuery.getOffset(), pageQuery.getPageSize()).stream()
                         .map(row -> mapRowWithSalary(row, role))
-                        .map(this::toTaskItemVO)
+                        .map(row -> toTaskItemVO(row, userId))
                         .toList();
                 total = taskMapper.countWaitingTasks();
             } else {
                 list = taskMapper.selectWaitingTasksExcludePublishersPage(childIds, pageQuery.getOffset(), pageQuery.getPageSize()).stream()
                         .map(row -> mapRowWithSalary(row, role))
-                        .map(this::toTaskItemVO)
+                        .map(row -> toTaskItemVO(row, userId))
                         .toList();
                 total = taskMapper.countWaitingTasksExcludePublishers(childIds);
             }
@@ -137,7 +137,7 @@ public class TaskService {
                     : taskMapper.selectTasksByPublisherIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
                     .stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toTaskItemVO)
+                    .map(row -> toTaskItemVO(row, userId))
                     .toList();
             total = normalizedStatus == null
                     ? taskMapper.countTasksByPublisherId(userId)
@@ -145,7 +145,7 @@ public class TaskService {
         } else {
             list = taskMapper.selectTaskListPage(pageQuery.getOffset(), pageQuery.getPageSize()).stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toTaskItemVO)
+                    .map(row -> toTaskItemVO(row, userId))
                     .toList();
             total = taskMapper.countTaskList();
         }
@@ -159,15 +159,16 @@ public class TaskService {
      * @return 过滤后的任务列表
      */
     private List<TaskItemVO> findWaitingTasksExcludePublishers(List<Long> excludePublisherIds, String role) {
+        Long reviewerId = null;
         if (excludePublisherIds == null || excludePublisherIds.isEmpty()) {
             return taskMapper.selectWaitingTasks().stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toTaskItemVO)
+                    .map(row -> toTaskItemVO(row, reviewerId))
                     .toList();
         }
         return taskMapper.selectWaitingTasksExcludePublishers(excludePublisherIds).stream()
                 .map(row -> mapRowWithSalary(row, role))
-                .map(this::toTaskItemVO)
+                .map(row -> toTaskItemVO(row, reviewerId))
                 .toList();
     }
 
@@ -196,7 +197,7 @@ public class TaskService {
         authService.requireAdmin(authorization);
         return taskMapper.selectTasksByStatus(TaskStatus.WAITING).stream()
                 .map(row -> mapRowWithSalary(row, "admin"))
-                .map(this::toTaskItemVO)
+                .map(row -> toTaskItemVO(row, null))
                 .toList();
     }
 
@@ -212,7 +213,7 @@ public class TaskService {
         PageQuery pageQuery = PageUtils.normalize(page, pageSize);
         List<TaskItemVO> list = taskMapper.selectTasksByStatusPage(TaskStatus.WAITING, pageQuery.getOffset(), pageQuery.getPageSize()).stream()
                 .map(row -> mapRowWithSalary(row, "admin"))
-                .map(this::toTaskItemVO)
+                .map(row -> toTaskItemVO(row, null))
                 .toList();
         long total = taskMapper.countTasksByStatus(TaskStatus.WAITING);
         return PageUtils.buildPageResult(list, total, pageQuery);
@@ -525,17 +526,17 @@ public class TaskService {
         if ("admin".equals(role)) {
             return taskMapper.selectAllOrders().stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
         } else if ("employer".equals(role) || "child".equals(role)) {
             return taskMapper.selectOrdersByPublisherId(userId).stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
         } else if ("elderly".equals(role)) {
             return taskMapper.selectOrdersByElderlyId(userId).stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
         }
         return List.of();
@@ -575,7 +576,7 @@ public class TaskService {
                     : taskMapper.selectAllOrdersPageByStatus(normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
                     .stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
             total = normalizedStatus == null ? taskMapper.countAllOrders() : taskMapper.countAllOrdersByStatus(normalizedStatus);
         } else if ("employer".equals(role) || "child".equals(role)) {
@@ -584,7 +585,7 @@ public class TaskService {
                     : taskMapper.selectOrdersByPublisherIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
                     .stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
             total = normalizedStatus == null
                     ? taskMapper.countOrdersByPublisherId(userId)
@@ -595,7 +596,7 @@ public class TaskService {
                     : taskMapper.selectOrdersByElderlyIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
                     .stream()
                     .map(row -> mapRowWithSalary(row, role))
-                    .map(this::toOrderItemVO)
+                    .map(row -> toOrderItemVO(row, userId))
                     .toList();
             total = normalizedStatus == null
                     ? taskMapper.countOrdersByElderlyId(userId)
@@ -851,7 +852,7 @@ public class TaskService {
      * @param row 任务记录
      * @return 任务列表项
      */
-    private TaskItemVO toTaskItemVO(Map<String, Object> row) {
+    private TaskItemVO toTaskItemVO(Map<String, Object> row, Long reviewerId) {
         TaskItemVO vo = new TaskItemVO();
         vo.setId(toLong(row.get("id")));
         vo.setTitle(strOrNull(row.get("title")));
@@ -884,6 +885,7 @@ public class TaskService {
         vo.setStatus(strOrNull(row.get("status")));
         vo.setFormattedStartTime(strOrNull(row.get("formattedStartTime")));
         vo.setFormattedFinishTime(strOrNull(row.get("formattedFinishTime")));
+        vo.setCurrentUserCommented(hasCurrentUserCommented(vo.getId(), reviewerId));
         return vo;
     }
 
@@ -905,7 +907,7 @@ public class TaskService {
      * @param row 订单记录
      * @return 订单列表对象
      */
-    private OrderItemVO toOrderItemVO(Map<String, Object> row) {
+    private OrderItemVO toOrderItemVO(Map<String, Object> row, Long reviewerId) {
         OrderItemVO vo = new OrderItemVO();
         vo.setId(toLong(row.get("id")));
         String orderCode = strOrNull(row.get("order_code"));
@@ -925,7 +927,15 @@ public class TaskService {
         vo.setStatus(strOrNull(row.get("status")));
         vo.setFormattedStartTime(strOrNull(row.get("formattedStartTime")));
         vo.setFormattedFinishTime(strOrNull(row.get("formattedFinishTime")));
+        vo.setCurrentUserCommented(hasCurrentUserCommented(vo.getId(), reviewerId));
         return vo;
+    }
+
+    private boolean hasCurrentUserCommented(Long taskId, Long reviewerId) {
+        if (taskId == null || reviewerId == null) {
+            return false;
+        }
+        return commentService.hasCommented(taskId, reviewerId);
     }
 
     /**

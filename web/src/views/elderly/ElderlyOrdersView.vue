@@ -71,6 +71,15 @@
             <button v-if="item.status === 'working'" class="btn" type="button" :disabled="actionLoading" @click="completeOrder(item)">
               完成订单
             </button>
+            <button
+              v-else-if="item.status === 'done' && !item.currentUserCommented"
+              class="btn btn-success"
+              type="button"
+              :disabled="commenting"
+              @click="openCommentDialog(item)"
+            >
+              评价雇主
+            </button>
           </div>
         </article>
       </div>
@@ -274,20 +283,26 @@ async function confirmCompleteOrder() {
   try {
     await finishOrder(item.id);
     successText.value = "订单已提交，等待支付";
-    showCommentDialog.value = true;
-    commentForm.value = {
-      taskId: item.id,
-      revieweeId: item.publisherId || item.publisher_id,
-      rating: 5,
-      content: "",
-      commentType: "elderly_rate_employer"
-    };
+    showConfirmDialog.value = false;
+    confirmItem.value = null;
     await loadData();
   } catch (error) {
     errorText.value = error.message || "操作失败";
   } finally {
     actionLoading.value = false;
   }
+}
+
+function openCommentDialog(item) {
+  messageError.value = "";
+  commentForm.value = {
+    taskId: item.id,
+    revieweeId: item.publisherId || item.publisher_id,
+    rating: 5,
+    content: "",
+    commentType: "elderly_rate_employer"
+  };
+  showCommentDialog.value = true;
 }
 
 function setRating(rating) {
@@ -304,6 +319,7 @@ async function submitComment() {
     await addComment(commentForm.value);
     showCommentDialog.value = false;
     commentForm.value = { taskId: null, revieweeId: null, rating: 5, content: "", commentType: "elderly_rate_employer" };
+    await loadData();
   } catch (error) {
     messageError.value = error.message || "评价提交失败";
   } finally {

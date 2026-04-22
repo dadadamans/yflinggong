@@ -27,4 +27,5 @@ public class TaskItemVO {
     private String status;
     private String formattedStartTime;
     private String formattedFinishTime;
+    private Boolean currentUserCommented;
 }

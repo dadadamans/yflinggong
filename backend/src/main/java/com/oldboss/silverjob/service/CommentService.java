@@ -125,6 +125,13 @@ public class CommentService {
         updateUserRating(expectedRevieweeId);
     }
 
+    public boolean hasCommented(Long taskId, Long reviewerId) {
+        if (taskId == null || reviewerId == null) {
+            return false;
+        }
+        return commentMapper.hasCommented(taskId, reviewerId);
+    }
+
     /**
      * 获取用户收到的全部评价
      * @param userId 用户ID
