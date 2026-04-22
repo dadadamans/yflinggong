@@ -4,6 +4,7 @@ import com.oldboss.silverjob.common.Result;
 import com.oldboss.silverjob.service.AdminStatsService;
 import com.oldboss.silverjob.service.AuthService;
 import com.oldboss.silverjob.vo.AdminStatsVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/admin")
+@Slf4j
 public class AdminStatsController {
 
     /**
@@ -35,6 +37,11 @@ public class AdminStatsController {
      *
      * @param adminStatsService 管理员统计服务实例
      */
+    /**
+     * 构造管理员统计控制器。
+     * @param adminStatsService 管理员统计服务
+     * @param authService 认证服务
+     */
     public AdminStatsController(AdminStatsService adminStatsService, AuthService authService) {
         this.adminStatsService = adminStatsService;
         this.authService = authService;
@@ -43,16 +50,13 @@ public class AdminStatsController {
     /**
      * 获取系统统计数据概览
      * 这是管理员dashboard的核心接口，返回所有统计数据
-     *
-     * 接口路径：GET /api/admin/stats
-     * 请求头：Authorization: Bearer <token>
-     *
      * @param authorization Authorization请求头，用于验证管理员身份
      * @return 统计数据VO，包含用户数量、订单数量、绑定关系、趋势图表等
      *         返回格式：Result.success(data)
      */
     @GetMapping("/stats")
     public Result<AdminStatsVO> stats(@RequestHeader("Authorization") String authorization) {
+        log.info("获取系统统计数计概览 {}", authorization);
         authService.requireAdmin(authorization);
         return Result.success(adminStatsService.getDashboardStats());
     }

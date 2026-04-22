@@ -40,6 +40,14 @@ public class BindService {
     private final AuthService authService;
     private final UserService userService;
 
+    /**
+     * 构造绑定服务并注入所需依赖。
+     * @param bindRelationMapper 绑定关系数据访问对象
+     * @param taskMapper 任务数据访问对象
+     * @param userMapper 用户数据访问对象
+     * @param authService 认证服务
+     * @param userService 用户服务
+     */
     public BindService(BindRelationMapper bindRelationMapper, TaskMapper taskMapper, UserMapper userMapper, AuthService authService, UserService userService) {
         this.bindRelationMapper = bindRelationMapper;
         this.taskMapper = taskMapper;
@@ -51,7 +59,7 @@ public class BindService {
     /**
      * 老人生成绑定码
      * @param authorization Authorization 请求头
-     * @return 绑定码信息
+     * @return 绑定码状态信息
      */
     @Transactional
     public BindStatusVO createBindCode(String authorization) {
@@ -134,7 +142,7 @@ public class BindService {
     }
 
     /**
-     * 解除绑定关系
+     * 解除绑定关系。
      * @param authorization Authorization 请求头
      */
     @Transactional
@@ -143,6 +151,11 @@ public class BindService {
         throw new BizException("当前版本暂不支持解绑功能");
     }
 
+    /**
+     * 获取当前用户的绑定信息、老人资料和当前进行中订单
+     * @param authorization Authorization 请求头
+     * @return 绑定详情
+     */
     public BindInfoVO bindInfo(String authorization) {
         CurrentUser currentUser = authService.requireUser(authorization);
         BindInfoVO result = new BindInfoVO();
@@ -169,6 +182,11 @@ public class BindService {
         return result;
     }
 
+    /**
+     * 获取绑定老人相关的全部订单（子女端专用）
+     * @param authorization Authorization 请求头
+     * @return 订单列表
+     */
     public List<BindOrderItemVO> bindOrderList(String authorization) {
         CurrentUser currentUser = authService.requireUser(authorization);
         if (!"child".equals(currentUser.getRoleType())) {
@@ -196,10 +214,25 @@ public class BindService {
                 .toList();
     }
 
+    /**
+     * 分页获取绑定老人相关订单
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页订单结果
+     */
     public PageResult<BindOrderItemVO> bindOrderList(String authorization, Integer page, Integer pageSize) {
         return bindOrderList(authorization, page, pageSize, null);
     }
 
+    /**
+     * 按状态分页获取绑定老人相关订单
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param status 订单状态筛选
+     * @return 分页订单结果
+     */
     public PageResult<BindOrderItemVO> bindOrderList(String authorization, Integer page, Integer pageSize, String status) {
         CurrentUser currentUser = authService.requireUser(authorization);
         if (!"child".equals(currentUser.getRoleType())) {
@@ -237,6 +270,11 @@ public class BindService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 获取全部绑定关系（管理员专用）
+     * @param authorization Authorization 请求头
+     * @return 绑定关系列表
+     */
     public List<BindListItemVO> listAllBinds(String authorization) {
         authService.requireAdmin(authorization);
         return bindRelationMapper.selectAllBinds().stream()
@@ -244,6 +282,13 @@ public class BindService {
                 .toList();
     }
 
+    /**
+     * 分页获取全部绑定关系（管理员专用）
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页绑定关系列表
+     */
     public PageResult<BindListItemVO> listAllBinds(String authorization, Integer page, Integer pageSize) {
         authService.requireAdmin(authorization);
         PageQuery pageQuery = PageUtils.normalize(page, pageSize);
@@ -254,6 +299,12 @@ public class BindService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 统一组装绑定状态基础信息，分别兼容老人端与子女端。
+     * @param userId 当前用户ID
+     * @param role 当前角色
+     * @return 绑定状态数据
+     */
     private Map<String, Object> bindInfoResult(Long userId, String role) {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -313,6 +364,11 @@ public class BindService {
         return result;
     }
 
+    /**
+     * 将数据库用户记录转换为统一资料结构。
+     * @param user 用户记录
+     * @return 资料 Map
+     */
     private Map<String, Object> toProfile(Map<String, Object> user) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", user.get("id"));
@@ -343,6 +399,11 @@ public class BindService {
         return result;
     }
 
+    /**
+     * 计算用户展示名称。
+     * @param user 用户记录
+     * @return 展示名称
+     */
     private String displayName(Map<String, Object> user) {
         if (user == null) {
             return "";
@@ -355,12 +416,22 @@ public class BindService {
         return primaryName(user);
     }
 
+    /**
+     * 获取用户主名称，优先真实姓名，其次昵称。
+     * @param user 用户记录
+     * @return 主名称
+     */
     private String primaryName(Map<String, Object> user) {
         String realName = nullToEmpty(user.get("real_name"));
         String nickname = nullToEmpty(user.get("nickname"));
         return realName.isEmpty() ? nickname : realName;
     }
 
+    /**
+     * 判断绑定码是否已超过有效时间。
+     * @param codeCreatedAt 绑定码创建时间
+     * @return 是否过期
+     */
     private boolean isCodeExpired(Object codeCreatedAt) {
         if (codeCreatedAt == null) {
             return true;
@@ -374,6 +445,11 @@ public class BindService {
         }
     }
 
+    /**
+     * 查找老人当前正在执行的订单，用于绑定信息页展示。
+     * @param elderlyId 老人ID
+     * @return 当前进行中的订单，没有则返回 null
+     */
     private Map<String, Object> findCurrentWorkingOrderByElderlyId(Long elderlyId) {
         List<Map<String, Object>> orders = taskMapper.selectOrdersByElderlyId(elderlyId);
         return orders.stream()
@@ -385,6 +461,12 @@ public class BindService {
     private static final double PLATFORM_FEE_SKILL = 0.10;
     private static final double PLATFORM_FEE_OTHER = 0.05;
 
+    /**
+     * 根据任务类型计算平台服务费。
+     * @param salary 任务金额
+     * @param taskType 任务类型
+     * @return 平台服务费
+     */
     private double calculatePlatformFee(Integer salary, String taskType) {
         if (salary == null || taskType == null) return 0;
         if (taskType != null && taskType.startsWith("skill:")) {
@@ -393,6 +475,13 @@ public class BindService {
         return salary * PLATFORM_FEE_OTHER;
     }
 
+    /**
+     * 根据当前查看角色计算展示金额。
+     * @param salary 原始金额
+     * @param taskType 任务类型
+     * @param currentRole 当前角色
+     * @return 展示金额
+     */
     private double calculateDisplaySalary(Integer salary, String taskType, String currentRole) {
         if (salary == null) return 0;
         if ("elderly".equals(currentRole)) {
@@ -402,18 +491,38 @@ public class BindService {
         return salary;
     }
 
+    /**
+     * 将字符串安全归一化为去首尾空格的非 null 值。
+     * @param value 原始值
+     * @return 归一化结果
+     */
     private String safe(String value) {
         return value == null ? "" : value.trim();
     }
 
+    /**
+     * 将任意对象安全转为字符串。
+     * @param value 原始值
+     * @return 字符串结果
+     */
     private String str(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
+    /**
+     * 将空值归一化为空字符串。
+     * @param value 原始值
+     * @return 非空字符串
+     */
     private String nullToEmpty(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /**
+     * 将统一资料结构转换为用户资料对象。
+     * @param source 资料 Map
+     * @return 用户资料对象
+     */
     private UserProfileVO toUserProfileVO(Map<String, Object> source) {
         UserProfileVO vo = new UserProfileVO();
         vo.setId(toLong(source.get("id")));
@@ -435,6 +544,11 @@ public class BindService {
         return vo;
     }
 
+    /**
+     * 将订单记录转换为当前订单展示对象。
+     * @param source 订单记录
+     * @return 当前订单对象
+     */
     private CurrentOrderVO toCurrentOrderVO(Map<String, Object> source) {
         if (source == null) {
             return null;
@@ -449,6 +563,11 @@ public class BindService {
         return vo;
     }
 
+    /**
+     * 将订单记录转换为绑定订单列表项。
+     * @param source 订单记录
+     * @return 绑定订单列表项
+     */
     private BindOrderItemVO toBindOrderItemVO(Map<String, Object> source) {
         BindOrderItemVO vo = new BindOrderItemVO();
         vo.setId(toLong(source.get("id")));
@@ -465,6 +584,11 @@ public class BindService {
         return vo;
     }
 
+    /**
+     * 将绑定关系记录转换为绑定列表项。
+     * @param source 绑定关系记录
+     * @return 绑定列表项
+     */
     private BindListItemVO toBindListItemVO(Map<String, Object> source) {
         BindListItemVO vo = new BindListItemVO();
         vo.setId(toLong(source.get("id")));
@@ -481,6 +605,11 @@ public class BindService {
         return vo;
     }
 
+    /**
+     * 将绑定状态数据转换为绑定状态对象。
+     * @param source 绑定状态数据
+     * @return 绑定状态对象
+     */
     private BindStatusVO toBindStatusVO(Map<String, Object> source) {
         BindStatusVO vo = new BindStatusVO();
         vo.setCode(strOrNull(source.get("code")));
@@ -493,6 +622,11 @@ public class BindService {
         return vo;
     }
 
+    /**
+     * 安全地将任意对象转换为 Boolean。
+     * @param value 原始值
+     * @return Boolean 值或 null
+     */
     private Boolean toBoolean(Object value) {
         if (value instanceof Boolean bool) {
             return bool;
@@ -503,6 +637,11 @@ public class BindService {
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
+    /**
+     * 安全地将任意对象转换为 Long。
+     * @param value 原始值
+     * @return Long 值或 null
+     */
     private Long toLong(Object value) {
         if (value == null) {
             return null;
@@ -517,10 +656,20 @@ public class BindService {
         }
     }
 
+    /**
+     * 将任意对象转换为字符串，空值返回 null。
+     * @param value 原始值
+     * @return 字符串或 null
+     */
     private String strOrNull(Object value) {
         return value == null ? null : String.valueOf(value);
     }
 
+    /**
+     * 安全地将任意对象转换为 Integer。
+     * @param value 原始值
+     * @return Integer 值或 null
+     */
     private Integer toInteger(Object value) {
         if (value == null) {
             return null;
@@ -535,6 +684,11 @@ public class BindService {
         }
     }
 
+    /**
+     * 安全地将任意对象转换为 Double。
+     * @param value 原始值
+     * @return Double 值或 null
+     */
     private Double toDouble(Object value) {
         if (value == null) {
             return null;

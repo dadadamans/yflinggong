@@ -10,16 +10,26 @@ import com.oldboss.silverjob.vo.OrderItemVO;
 import com.oldboss.silverjob.vo.TaskDetailVO;
 import com.oldboss.silverjob.vo.TaskItemVO;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 任务控制器
+ * 处理任务分类、任务大厅、任务详情、接单审核和订单操作等接口
+ */
 @RestController
 @RequestMapping("/api/task")
+@Slf4j
 public class TaskController {
 
     private final TaskService taskService;
 
+    /**
+     * 构造任务控制器。
+     * @param taskService 任务服务
+     */
     public TaskController(TaskService taskService) {
         this.taskService = taskService;
     }
@@ -30,6 +40,7 @@ public class TaskController {
      */
     @GetMapping("/categories")
     public Result<List<CategoryVO>> categories() {
+        log.info("获取任务分类列表");
         return Result.success(TaskCategory.toCascadeList());
     }
 
@@ -43,6 +54,7 @@ public class TaskController {
                           @RequestParam(value = "page", required = false) Integer page,
                           @RequestParam(value = "pageSize", required = false) Integer pageSize,
                           @RequestParam(value = "status", required = false) String status) {
+        log.info("获取任务大厅列表:{}" , authorization);
         if (page == null && pageSize == null && status == null) {
             return Result.success(taskService.taskList(authorization));
         }
@@ -58,6 +70,7 @@ public class TaskController {
     @GetMapping("/detail")
     public Result<TaskDetailVO> detail(@RequestHeader("Authorization") String authorization,
                                                @RequestParam("id") Long id) {
+        log.info("获取任务详情:{}" , authorization);
         return Result.success(taskService.taskDetail(authorization, id));
     }
 
@@ -70,6 +83,7 @@ public class TaskController {
     @PostMapping("/add")
     public Result<Void> add(@RequestHeader("Authorization") String authorization,
                                            @Valid @RequestBody TaskFormRequestDTO request) {
+        log.info("发布任务:{}" , authorization);
         taskService.addTask(authorization, request);
         return Result.success(null, "任务已发布");
     }
@@ -83,6 +97,7 @@ public class TaskController {
     @PostMapping("/apply")
     public Result<Void> apply(@RequestHeader("Authorization") String authorization,
                                            @RequestBody IdRequestDTO request) {
+        log.info("老人用户申请接单：{}" , authorization);
         taskService.applyTask(authorization, request.getId());
         return Result.success(null, "申请已提交，等待审核");
     }
@@ -96,6 +111,7 @@ public class TaskController {
     @PostMapping("/approve")
     public Result<Void> approve(@RequestHeader("Authorization") String authorization,
                                               @RequestBody IdRequestDTO request) {
+        log.info("雇主批准接单:{}" , authorization);
         taskService.approveTask(authorization, request.getId());
         return Result.success(null, "已批准接单");
     }
@@ -109,6 +125,7 @@ public class TaskController {
     @PostMapping("/reject")
     public Result<Void> reject(@RequestHeader("Authorization") String authorization,
                                               @RequestBody IdRequestDTO request) {
+        log.info("雇主拒绝接单:{}" , authorization);
         taskService.rejectTask(authorization, request.getId());
         return Result.success(null, "已拒绝申请");
     }
@@ -122,6 +139,7 @@ public class TaskController {
     public Result<?> adminWaitingTasks(@RequestHeader("Authorization") String authorization,
                                        @RequestParam(value = "page", required = false) Integer page,
                                        @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        log.info("管理员获取待接单任务列表");
         if (page == null && pageSize == null) {
             return Result.success(taskService.adminWaitingTasks(authorization));
         }
@@ -138,6 +156,7 @@ public class TaskController {
                             @RequestParam(value = "page", required = false) Integer page,
                             @RequestParam(value = "pageSize", required = false) Integer pageSize,
                             @RequestParam(value = "status", required = false) String status) {
+        log.info("获取订单列表：{}" , authorization);
         if (page == null && pageSize == null && status == null) {
             return Result.success(taskService.orderList(authorization));
         }
@@ -153,6 +172,7 @@ public class TaskController {
     @PostMapping("/order/finish")
     public Result<Void> finishOrder(@RequestHeader("Authorization") String authorization,
                                                     @RequestBody IdRequestDTO request) {
+        log.info("老人完成订单：{}" , authorization);
         Long taskId = request.getId() != null ? request.getId() : request.getTaskId();
         taskService.finishOrder(authorization, taskId);
         return Result.success(null, "任务已完成");
@@ -167,6 +187,7 @@ public class TaskController {
     @PostMapping("/order/pay")
     public Result<Void> payOrder(@RequestHeader("Authorization") String authorization,
                                                  @RequestBody IdRequestDTO request) {
+        log.info("支付订单:{}" , authorization);
         Long taskId = request.getId() != null ? request.getId() : request.getTaskId();
         taskService.payOrder(authorization, taskId);
         return Result.success(null, "支付成功");
@@ -181,6 +202,7 @@ public class TaskController {
     @PostMapping("/order/cancel")
     public Result<Void> cancelOrder(@RequestHeader("Authorization") String authorization,
                                                     @RequestBody IdRequestDTO request) {
+        log.info("取消订单:{}" , authorization);
         Long taskId = request.getId() != null ? request.getId() : request.getTaskId();
         taskService.cancelOrder(authorization, taskId);
         return Result.success(null, "订单已取消");
@@ -195,6 +217,7 @@ public class TaskController {
     @PostMapping("/order/delete")
     public Result<Void> deleteOrder(@RequestHeader("Authorization") String authorization,
                                                     @RequestBody IdRequestDTO request) {
+        log.info("删除订单：{}" , authorization);
         Long taskId = request.getId() != null ? request.getId() : request.getTaskId();
         taskService.deleteOrder(authorization, taskId);
         return Result.success(null, "订单已删除");

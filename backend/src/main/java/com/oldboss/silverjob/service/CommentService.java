@@ -21,6 +21,10 @@ import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * 评价服务
+ * 处理任务评价、评价查询、评分统计和评分回写等业务逻辑
+ */
 @Service
 public class CommentService {
 
@@ -29,6 +33,13 @@ public class CommentService {
     private final UserMapper userMapper;
     private final AuthService authService;
 
+    /**
+     * 构造评价服务并注入所需依赖。
+     * @param commentMapper 评价数据访问对象
+     * @param taskMapper 任务数据访问对象
+     * @param userMapper 用户数据访问对象
+     * @param authService 认证服务
+     */
     public CommentService(CommentMapper commentMapper, TaskMapper taskMapper, UserMapper userMapper, AuthService authService) {
         this.commentMapper = commentMapper;
         this.taskMapper = taskMapper;
@@ -36,6 +47,11 @@ public class CommentService {
         this.authService = authService;
     }
 
+    /**
+     * 提交任务评价
+     * @param authorization Authorization 请求头
+     * @param request 评价请求
+     */
     @Transactional
     public void addComment(String authorization, CommentRequestDTO request) {
         CurrentUser currentUser = authService.requireUser(authorization);
@@ -109,6 +125,11 @@ public class CommentService {
         updateUserRating(expectedRevieweeId);
     }
 
+    /**
+     * 获取用户收到的全部评价
+     * @param userId 用户ID
+     * @return 评价列表
+     */
     public List<CommentItemVO> getUserComments(Long userId) {
         if (userId == null) {
             throw new BizException("用户ID不能为空");
@@ -116,6 +137,13 @@ public class CommentService {
         return commentMapper.findByRevieweeId(userId);
     }
 
+    /**
+     * 分页获取用户收到的评价
+     * @param userId 用户ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页评价结果
+     */
     public PageResult<CommentItemVO> getUserComments(Long userId, Integer page, Integer pageSize) {
         if (userId == null) {
             throw new BizException("用户ID不能为空");
@@ -126,6 +154,11 @@ public class CommentService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 获取指定任务下的全部评价
+     * @param taskId 任务ID
+     * @return 评价列表
+     */
     public List<CommentItemVO> getTaskComments(Long taskId) {
         if (taskId == null) {
             throw new BizException("任务ID不能为空");
@@ -133,6 +166,13 @@ public class CommentService {
         return commentMapper.findByTaskId(taskId);
     }
 
+    /**
+     * 分页获取指定任务下的评价
+     * @param taskId 任务ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页评价结果
+     */
     public PageResult<CommentItemVO> getTaskComments(Long taskId, Integer page, Integer pageSize) {
         if (taskId == null) {
             throw new BizException("任务ID不能为空");
@@ -143,6 +183,11 @@ public class CommentService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 获取用户评价统计
+     * @param userId 用户ID
+     * @return 用户总分、评价条数和平均分
+     */
     public UserCommentStatsVO getUserCommentStats(Long userId) {
         if (userId == null) {
             throw new BizException("用户ID��能为空");
@@ -165,6 +210,10 @@ public class CommentService {
         return stats;
     }
 
+    /**
+     * 删除指定任务下的评价并重算相关用户评分
+     * @param taskId 任务ID
+     */
     @Transactional
     public void deleteCommentsByTaskId(Long taskId) {
         if (taskId == null) {
@@ -176,6 +225,10 @@ public class CommentService {
         affectedUserIds.forEach(this::updateUserRating);
     }
 
+    /**
+     * 根据评论表中的累计数据回写用户评分字段。
+     * @param userId 用户ID
+     */
     private void updateUserRating(Long userId) {
         Integer totalScore = commentMapper.sumRatingByUserId(userId);
         Integer commentCount = commentMapper.countByUserId(userId);
@@ -183,6 +236,11 @@ public class CommentService {
         userMapper.updateUserRating(userId, totalScore != null ? totalScore : 0, commentCount != null ? commentCount : 0);
     }
 
+    /**
+     * 安全地将任意对象转换为 Long。
+     * @param value 原始值
+     * @return Long 值或 null
+     */
     private Long toLong(Object value) {
         if (value == null) {
             return null;
@@ -197,6 +255,11 @@ public class CommentService {
         }
     }
 
+    /**
+     * 从当前登录用户资料中提取显示名称。
+     * @param user 当前登录用户
+     * @return 显示名称
+     */
     private String getDisplayName(CurrentUser user) {
         String nickname = user.getProfile().get("nickname") != null
             ? String.valueOf(user.getProfile().get("nickname"))
@@ -213,6 +276,11 @@ public class CommentService {
         return "用户" + user.getUserId();
     }
 
+    /**
+     * 从数据库用户记录中提取显示名称。
+     * @param user 用户记录
+     * @return 显示名称
+     */
     private String getDisplayName(Map<String, Object> user) {
         if (user == null) {
             return "";

@@ -5,6 +5,7 @@ import com.oldboss.silverjob.dto.MessageSendRequestDTO;
 import com.oldboss.silverjob.service.MessageService;
 import com.oldboss.silverjob.vo.MessageItemVO;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,10 +21,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/message")
+@Slf4j
 public class MessageController {
 
     private final MessageService messageService;
 
+    /**
+     * 构造留言控制器。
+     * @param messageService 留言服务
+     */
     public MessageController(MessageService messageService) {
         this.messageService = messageService;
     }
@@ -35,6 +41,7 @@ public class MessageController {
      */
     @GetMapping("/list")
     public Result<List<MessageItemVO>> list(@RequestHeader("Authorization") String authorization) {
+        log.info("获取留言列表：{}" , authorization);
         return Result.success(messageService.messageList(authorization));
     }
 
@@ -47,6 +54,7 @@ public class MessageController {
     @PostMapping("/send")
     public Result<Void> send(@RequestHeader("Authorization") String authorization,
                                              @Valid @RequestBody MessageSendRequestDTO request) {
+        log.info("发送留言:{}" , authorization);
         messageService.sendMessage(authorization, request);
         return Result.success(null, "留言已发送");
     }

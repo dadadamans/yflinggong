@@ -8,6 +8,7 @@ import com.oldboss.silverjob.service.UserService;
 import com.oldboss.silverjob.vo.UserInfoVO;
 import com.oldboss.silverjob.vo.UserSummaryVO;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,10 +25,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/user")
+@Slf4j
 public class UserController {
 
     private final UserService userService;
 
+    /**
+     * 构造用户控制器。
+     * @param userService 用户服务
+     */
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -44,6 +50,7 @@ public class UserController {
                           @RequestParam(value = "roleType", required = false) String roleType,
                           @RequestParam(value = "enabled", required = false) Boolean enabled,
                           @RequestParam(value = "healthStatus", required = false) String healthStatus) {
+        log.info("获取所有用户列表: {}", authorization);
         if (page == null && pageSize == null && roleType == null && enabled == null && healthStatus == null) {
             return Result.success(userService.listAllUsers(authorization));
         }
@@ -57,6 +64,7 @@ public class UserController {
      */
     @GetMapping("/info")
     public Result<UserInfoVO> info(@RequestHeader("Authorization") String authorization) {
+        log.info("获取当前登录用户的资料: {}" , authorization);
         return Result.success(userService.userInfo(authorization));
     }
 
@@ -69,6 +77,7 @@ public class UserController {
     @PostMapping("/save")
     public Result<Void> save(@RequestHeader("Authorization") String authorization,
                                               @Valid @RequestBody UserSaveRequestDTO payload) {
+        log.info("保存当前登录用户的资料: {}", authorization);
         userService.saveUserInfo(authorization, payload);
         return Result.success(null, "资料已保存");
     }
@@ -82,6 +91,7 @@ public class UserController {
     @PostMapping("/setEnabled")
     public Result<Void> setEnabled(@RequestHeader("Authorization") String authorization,
                                                    @Valid @RequestBody IdRequestDTO request) {
+        log.info("启用或禁用用户账号: {}", authorization);
         boolean enabled = request.getEnabled() != null && request.getEnabled();
         userService.setUserEnabled(authorization, request.getUserId(), enabled);
         return Result.success(null, enabled ? "已启用" : "已禁用");
@@ -96,6 +106,7 @@ public class UserController {
     @PostMapping("/setElderlyFontSize")
     public Result<Void> setElderlyFontSize(@RequestHeader("Authorization") String authorization,
                                            @Valid @RequestBody ElderlyFontSizeRequestDTO payload) {
+        log.info("设置老人字体大小：{}" , authorization);
         userService.setElderlyFontSize(authorization, payload.getElderlyId(), payload.getFontSize());
         return Result.success(null, "字体大小已更新");
     }

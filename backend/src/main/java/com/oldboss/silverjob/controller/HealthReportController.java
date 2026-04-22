@@ -7,6 +7,7 @@ import com.oldboss.silverjob.model.CurrentUser;
 import com.oldboss.silverjob.service.AuthService;
 import com.oldboss.silverjob.service.UserService;
 import com.oldboss.silverjob.vo.HealthReportVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/health")
+@Slf4j
 public class HealthReportController {
 
     @Value("${app.upload.health-report-dir:#{systemProperties['user.dir'] + '/uploads/healthReports/'}}")
@@ -33,6 +35,11 @@ public class HealthReportController {
     private final AuthService authService;
     private final UserService userService;
 
+    /**
+     * 构造体检报告控制器。
+     * @param authService 认证服务
+     * @param userService 用户服务
+     */
     public HealthReportController(AuthService authService, UserService userService) {
         this.authService = authService;
         this.userService = userService;
@@ -59,31 +66,38 @@ public class HealthReportController {
     @PostMapping("/upload")
     public Result<Void> upload(@RequestHeader("Authorization") String authorization,
                                                 @RequestParam("file") MultipartFile file) {
+        log.info("上传体检报告：{}" , authorization);
         CurrentUser currentUser = authService.requireUser(authorization);
         if (!"elderly".equals(currentUser.getRoleType())) {
+            log.info("只有老人才能上传体检报告");
             throw new BizException("只有老人才能上传体检报告");
         }
 
         if (file == null || file.isEmpty()) {
+            log.info("请选择文件");
             throw new BizException("请选择文件");
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
+            log.info("文件名无效");
             throw new BizException("文件名无效");
         }
         int dotIndex = originalFilename.lastIndexOf(".");
         if (dotIndex <= 0 || dotIndex == originalFilename.length() - 1) {
+            log.info("文件名无效");
             throw new BizException("文件名无效");
         }
         String ext = originalFilename.substring(originalFilename.lastIndexOf("."));
         if (!".pdf".equalsIgnoreCase(ext)) {
+            log.info("仅支持PDF文件");
             throw new BizException("仅支持 PDF 文件");
         }
         String newFilename = UUID.randomUUID().toString() + ext;
         Path path = Paths.get(uploadDir, newFilename);
 
         try {
+            // 先完成文件落盘，再保存访问路径，避免数据库记录指向不存在的文件。
             Files.write(path, file.getBytes());
 
             String fileUrl = "/uploads/healthReports/" + newFilename;
@@ -94,14 +108,14 @@ public class HealthReportController {
             try {
                 Files.deleteIfExists(path);
             } catch (IOException ignored) {
-                // Ignore cleanup failures and return the original upload error.
+                // 清理失败时忽略，优先保留原始上传异常信息。
             }
             throw new BizException("文件上传失败，请稍后重试");
         } catch (RuntimeException e) {
             try {
                 Files.deleteIfExists(path);
             } catch (IOException ignored) {
-                // Ignore cleanup failures and keep the original business error.
+                // 业务异常发生后回滚已落盘文件，避免产生孤立文件。
             }
             throw e;
         }
@@ -116,6 +130,7 @@ public class HealthReportController {
     @PostMapping("/review")
     public Result<Void> review(@RequestHeader("Authorization") String authorization,
                                                 @RequestBody IdRequestDTO request) {
+        log.info("审核体检报告:{}" , authorization);
         Long userId = request.getUserId();
         Boolean approved = request.getEnabled();
         String healthCondition = request.getHealthCondition();
@@ -130,6 +145,7 @@ public class HealthReportController {
      */
     @GetMapping("/status")
     public Result<HealthReportVO> status(@RequestHeader("Authorization") String authorization) {
+        log.info("获取体检报告状态:{}" , authorization);
         return Result.success(userService.getHealthReportStatus(authorization));
     }
 }

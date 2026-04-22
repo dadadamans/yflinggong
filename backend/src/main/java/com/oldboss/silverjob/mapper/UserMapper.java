@@ -6,6 +6,10 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.Map;
 
+/**
+ * 用户 Mapper
+ * 负责用户资料、账号状态、体检报告和评分字段的数据库操作
+ */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
 

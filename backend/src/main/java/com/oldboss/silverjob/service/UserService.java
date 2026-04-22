@@ -33,6 +33,13 @@ public class UserService {
     private final TaskMapper taskMapper;
     private final AuthService authService;
 
+    /**
+     * 构造用户服务并注入所需依赖。
+     * @param userMapper 用户数据访问对象
+     * @param bindRelationMapper 绑定关系数据访问对象
+     * @param taskMapper 任务数据访问对象
+     * @param authService 认证服务
+     */
     public UserService(UserMapper userMapper, BindRelationMapper bindRelationMapper, TaskMapper taskMapper, AuthService authService) {
         this.userMapper = userMapper;
         this.bindRelationMapper = bindRelationMapper;
@@ -50,6 +57,13 @@ public class UserService {
         return userMapper.selectList(null).stream().map(this::userToMap).toList();
     }
 
+    /**
+     * 分页获取全部用户列表（管理员专用）
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页用户列表
+     */
     public PageResult<UserSummaryVO> listAllUsers(String authorization, Integer page, Integer pageSize) {
         authService.requireAdmin(authorization);
         PageQuery pageQuery = PageUtils.normalize(page, pageSize);
@@ -61,6 +75,16 @@ public class UserService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 按条件分页获取用户列表（管理员专用）
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param roleType 角色类型筛选
+     * @param enabled 启用状态筛选
+     * @param healthStatus 体检状态筛选
+     * @return 分页用户列表
+     */
     public PageResult<UserSummaryVO> listAllUsers(String authorization, Integer page, Integer pageSize,
                                                   String roleType, Boolean enabled, String healthStatus) {
         authService.requireAdmin(authorization);
@@ -101,6 +125,11 @@ public class UserService {
 
     /**
      * 保存当前用户资料
+     * @param authorization Authorization 请求头
+     * @param payload 用户资料数据
+     */
+    /**
+     * 保存当前登录用户资料，并在名称变化时同步任务中的展示名称。
      * @param authorization Authorization 请求头
      * @param payload 用户资料数据
      */
@@ -173,6 +202,12 @@ public class UserService {
         userMapper.updateFontSize(elderlyId, fontSize);
     }
 
+    /**
+     * 当用户显示名称变化后，同步任务表中的冗余名称字段。
+     * @param role 用户角色
+     * @param oldName 旧名称
+     * @param newName 新名称
+     */
     private void syncDisplayName(String role, String oldName, String newName) {
         if (oldName.equals(newName)) {
             return;
@@ -185,6 +220,11 @@ public class UserService {
         }
     }
 
+    /**
+     * 将用户实体转换为用户列表展示对象。
+     * @param user 用户实体
+     * @return 用户摘要对象
+     */
     private UserSummaryVO userToMap(com.oldboss.silverjob.entity.User user) {
         UserSummaryVO vo = new UserSummaryVO();
         vo.setId(user.getId());
@@ -201,6 +241,11 @@ public class UserService {
         return vo;
     }
 
+    /**
+     * 将统一资料结构转换为前端使用的用户资料对象。
+     * @param profile 资料 Map
+     * @return 用户资料对象
+     */
     private UserProfileVO toUserProfileVO(Map<String, Object> profile) {
         UserProfileVO vo = new UserProfileVO();
         vo.setId(toLong(profile.get("id")));
@@ -233,6 +278,11 @@ public class UserService {
         return vo;
     }
 
+    /**
+     * 将数据库用户记录转换为统一资料结构。
+     * @param user 数据库用户记录
+     * @return 统一资料 Map
+     */
     private Map<String, Object> toProfile(Map<String, Object> user) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("nickname", nullToEmpty(user.get("nickname")));
@@ -269,6 +319,11 @@ public class UserService {
         return result;
     }
 
+    /**
+     * 将角色编码转换为中文名称。
+     * @param role 角色编码
+     * @return 中文角色名称
+     */
     private String roleText(String role) {
         if ("elderly".equals(role)) return "老人";
         if ("employer".equals(role)) return "雇主";
@@ -277,6 +332,11 @@ public class UserService {
         return role;
     }
 
+    /**
+     * 计算用户在界面中使用的显示名称。
+     * @param user 用户记录
+     * @return 显示名称
+     */
     private String displayName(Map<String, Object> user) {
         if (user == null) {
             return "";
@@ -289,12 +349,24 @@ public class UserService {
         return primaryName(user);
     }
 
+    /**
+     * 获取用户主显示名称，优先真实姓名，其次昵称。
+     * @param user 用户记录
+     * @return 主名称
+     */
     private String primaryName(Map<String, Object> user) {
         String realName = nullToEmpty(user.get("real_name"));
         String nickname = nullToEmpty(user.get("nickname"));
         return realName.isEmpty() ? nickname : realName;
     }
 
+    /**
+     * 按角色规则决定资料保存时最终写入的真实姓名。
+     * @param role 当前角色
+     * @param merged 合并后的资料数据
+     * @param existing 数据库原始数据
+     * @return 真实姓名
+     */
     private String resolveProfileRealName(String role, Map<String, Object> merged, Map<String, Object> existing) {
         if ("elderly".equals(role)) {
             String realName = str(merged.get("realName"));
@@ -307,14 +379,29 @@ public class UserService {
         return str(existing.get("real_name"));
     }
 
+    /**
+     * 将任意对象安全转为去首尾空格的字符串。
+     * @param value 原始值
+     * @return 字符串结果
+     */
     private String str(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
+    /**
+     * 将任意对象安全转为字符串，空值返回 null。
+     * @param value 原始值
+     * @return 字符串或 null
+     */
     private String strOrNull(Object value) {
         return value == null ? null : String.valueOf(value);
     }
 
+    /**
+     * 将输入值解析为年龄字段需要的 Short 类型。
+     * @param value 原始值
+     * @return 解析结果
+     */
     private Short parseShort(Object value) {
         String text = str(value);
         if (text.isEmpty()) {
@@ -327,14 +414,29 @@ public class UserService {
         }
     }
 
+    /**
+     * 将空值转换为空字符串。
+     * @param value 原始值
+     * @return 非空字符串
+     */
     private String nullToEmpty(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /**
+     * 将空白字符串归一化为 null。
+     * @param value 原始值
+     * @return 归一化结果
+     */
     private String emptyToNull(String value) {
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
+    /**
+     * 将用户保存请求对象展开为便于合并处理的 Map。
+     * @param payload 保存请求
+     * @return 请求字段映射
+     */
     private Map<String, Object> toPayloadMap(UserSaveRequestDTO payload) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("nickname", payload.getNickname());
@@ -355,6 +457,11 @@ public class UserService {
         return map;
     }
 
+    /**
+     * 安全地将任意对象转换为 Long。
+     * @param value 原始值
+     * @return Long 值或 null
+     */
     private Long toLong(Object value) {
         if (value == null) {
             return null;
@@ -369,6 +476,11 @@ public class UserService {
         }
     }
 
+    /**
+     * 安全地将任意对象转换为 Integer。
+     * @param value 原始值
+     * @return Integer 值或 null
+     */
     private Integer toInteger(Object value) {
         if (value == null) {
             return null;

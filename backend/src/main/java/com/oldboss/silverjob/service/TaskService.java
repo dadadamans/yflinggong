@@ -13,6 +13,7 @@ import com.oldboss.silverjob.model.CurrentUser;
 import com.oldboss.silverjob.vo.TaskDetailVO;
 import com.oldboss.silverjob.vo.TaskItemVO;
 import com.oldboss.silverjob.vo.OrderItemVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import java.util.Map;
  * 处理任务大厅、任务发布、接单、订单管理等业务逻辑
  */
 @Service
+@Slf4j
 public class TaskService {
 
     private static final DateTimeFormatter ORDER_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -40,6 +42,14 @@ public class TaskService {
     private final UserService userService;
     private final CommentService commentService;
 
+    /**
+     * 构造任务服务并注入所需依赖。
+     * @param taskMapper 任务数据访问对象
+     * @param bindRelationMapper 绑定关系数据访问对象
+     * @param authService 认证服务
+     * @param userService 用户服务
+     * @param commentService 评价服务
+     */
     public TaskService(TaskMapper taskMapper, BindRelationMapper bindRelationMapper, AuthService authService, UserService userService, CommentService commentService) {
         this.taskMapper = taskMapper;
         this.bindRelationMapper = bindRelationMapper;
@@ -78,10 +88,25 @@ public class TaskService {
                 .toList();
     }
 
+    /**
+     * 分页获取任务大厅列表
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页任务列表
+     */
     public PageResult<TaskItemVO> taskList(String authorization, Integer page, Integer pageSize) {
         return taskList(authorization, page, pageSize, null);
     }
 
+    /**
+     * 按状态分页获取任务大厅列表
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param status 任务状态筛选
+     * @return 分页任务列表
+     */
     public PageResult<TaskItemVO> taskList(String authorization, Integer page, Integer pageSize, String status) {
         CurrentUser currentUser = authService.requireUser(authorization);
         String role = currentUser.getRoleType();
@@ -127,6 +152,12 @@ public class TaskService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 老人端查询待接单任务时，排除已绑定子女发布的任务。
+     * @param excludePublisherIds 需要排除的发布者ID列表
+     * @param role 当前角色
+     * @return 过滤后的任务列表
+     */
     private List<TaskItemVO> findWaitingTasksExcludePublishers(List<Long> excludePublisherIds, String role) {
         if (excludePublisherIds == null || excludePublisherIds.isEmpty()) {
             return taskMapper.selectWaitingTasks().stream()
@@ -169,6 +200,13 @@ public class TaskService {
                 .toList();
     }
 
+    /**
+     * 分页获取待接单任务列表（管理员专用）
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页任务列表
+     */
     public PageResult<TaskItemVO> adminWaitingTasks(String authorization, Integer page, Integer pageSize) {
         authService.requireAdmin(authorization);
         PageQuery pageQuery = PageUtils.normalize(page, pageSize);
@@ -180,6 +218,11 @@ public class TaskService {
         return PageUtils.buildPageResult(list, total, pageQuery);
     }
 
+    /**
+     * 发布新任务
+     * @param authorization Authorization 请求头
+     * @param request 任务表单数据
+     */
     /**
      * 发布新任务
      * @param authorization Authorization 请求头
@@ -250,7 +293,7 @@ public class TaskService {
     }
 
     /**
-     * 雇主批准接单
+     * 雇主或子女批准接单申请。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -281,7 +324,7 @@ public class TaskService {
     }
 
     /**
-     * 雇主拒绝接单
+     * 雇主或子女拒绝接单申请。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -310,6 +353,11 @@ public class TaskService {
         }
     }
 
+    /**
+     * 从当前登录用户资料中提取任务展示名称。
+     * @param user 当前登录用户
+     * @return 展示名称
+     */
     private String getUserDisplayName(CurrentUser user) {
         String nickname = user.getProfile().get("nickname") != null
             ? String.valueOf(user.getProfile().get("nickname"))
@@ -338,6 +386,11 @@ public class TaskService {
         return taskMapper.selectTasksByPublisherId(userId).stream().map(row -> mapRowWithSalary(row, role)).toList();
     }
 
+    /**
+     * 计算用户展示名称。
+     * @param user 用户记录
+     * @return 展示名称
+     */
     private String displayName(Map<String, Object> user) {
         if (user == null) {
             return "";
@@ -352,23 +405,46 @@ public class TaskService {
         return realName.isEmpty() ? nickname : realName;
     }
 
+    /**
+     * 生成订单编号。
+     * @return 订单编号
+     */
     private String buildOrderCode() {
         return "#" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
                 + String.format("%02d", taskMapper.getNextOrderId());
     }
 
+    /**
+     * 将字符串安全归一化为去首尾空格的非 null 值。
+     * @param value 原始值
+     * @return 归一化结果
+     */
     private String safe(String value) {
         return value == null ? "" : value.trim();
     }
 
+    /**
+     * 将任意对象安全转为字符串。
+     * @param value 原始值
+     * @return 字符串结果
+     */
     private String str(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
+    /**
+     * 将空值归一化为空字符串。
+     * @param value 原始值
+     * @return 非空字符串
+     */
     private String nullToEmpty(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /**
+     * 校验任务时间格式与发布时间约束。
+     * @param timeText 时间描述文本
+     */
     private void validateTaskTime(String timeText) {
         if (timeText == null || timeText.isEmpty()) {
             return;
@@ -413,6 +489,12 @@ public class TaskService {
         }
     }
 
+    /**
+     * 组合任务大类和子类型得到最终任务类型编码。
+     * @param category 任务大类
+     * @param subType 子类型
+     * @return 任务类型编码
+     */
     private String buildTaskType(String category, String subType) {
         if (category.isEmpty() && subType.isEmpty()) {
             return "";
@@ -459,10 +541,25 @@ public class TaskService {
         return List.of();
     }
 
+    /**
+     * 分页获取订单列表
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 分页订单结果
+     */
     public PageResult<OrderItemVO> orderList(String authorization, Integer page, Integer pageSize) {
         return orderList(authorization, page, pageSize, null);
     }
 
+    /**
+     * 按状态分页获取订单列表
+     * @param authorization Authorization 请求头
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param status 订单状态筛选
+     * @return 分页订单结果
+     */
     public PageResult<OrderItemVO> orderList(String authorization, Integer page, Integer pageSize, String status) {
         CurrentUser currentUser = authService.requireUser(authorization);
         String role = currentUser.getRoleType();
@@ -511,7 +608,7 @@ public class TaskService {
     }
 
     /**
-     * 完成任务（老人端）
+     * 老人完成订单。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -537,7 +634,7 @@ public class TaskService {
     }
 
     /**
-     * 支付订单（雇主/子女端）
+     * 雇主或子女支付订单。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -563,7 +660,7 @@ public class TaskService {
     }
 
     /**
-     * 取消订单（雇主/子女端）
+     * 雇主或子女取消待接单订单。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -590,7 +687,7 @@ public class TaskService {
     }
 
     /**
-     * 删除订单
+     * 删除订单，管理员可直接删除，发布方仅能删除待接单订单。
      * @param authorization Authorization 请求头
      * @param taskId 任务ID
      */
@@ -620,6 +717,11 @@ public class TaskService {
         }
     }
 
+    /**
+     * 安全地将任意对象转换为 Long。
+     * @param value 原始值
+     * @return Long 值或 null
+     */
     private Long toLong(Object value) {
         if (value == null) {
             return null;
@@ -640,6 +742,12 @@ public class TaskService {
     private static final double PLATFORM_FEE_SKILL = 0.10;
     private static final double PLATFORM_FEE_OTHER = 0.05;
 
+    /**
+     * 根据任务类型计算平台服务费。
+     * @param salary 原始金额
+     * @param taskType 任务类型
+     * @return 平台服务费
+     */
     private double calculatePlatformFee(Integer salary, String taskType) {
         if (salary == null || taskType == null) return 0;
         if (taskType.startsWith("skill:")) {
@@ -648,6 +756,13 @@ public class TaskService {
         return salary * PLATFORM_FEE_OTHER;
     }
 
+    /**
+     * 按当前角色计算前端展示金额。
+     * @param salary 原始金额
+     * @param taskType 任务类型
+     * @param currentRole 当前角色
+     * @return 展示金额
+     */
     private double calculateDisplaySalary(Integer salary, String taskType, String currentRole) {
         if (salary == null) return 0;
         if ("elderly".equals(currentRole)) {
@@ -657,10 +772,21 @@ public class TaskService {
         return salary;
     }
 
+    /**
+     * 保留原始行数据的占位方法，便于后续扩展字段映射。
+     * @param row 原始记录
+     * @return 原始记录
+     */
     private Map<String, Object> mapRow(Map<String, Object> row) {
         return row;
     }
 
+    /**
+     * 将数据库任务记录补充为前端需要的金额、类型和时间格式字段。
+     * @param row 原始任务记录
+     * @param currentRole 当前查看角色
+     * @return 处理后的任务记录
+     */
     private Map<String, Object> mapRowWithSalary(Map<String, Object> row, String currentRole) {
         Integer salary = (Integer) row.get("salary");
         String taskType = (String) row.get("task_type");
@@ -692,6 +818,11 @@ public class TaskService {
         return row;
     }
 
+    /**
+     * 将任务记录转换为任务详情对象。
+     * @param row 任务记录
+     * @return 任务详情对象
+     */
     private TaskDetailVO toTaskDetailVO(Map<String, Object> row) {
         TaskDetailVO vo = new TaskDetailVO();
         vo.setId(toLong(row.get("id")));
@@ -715,6 +846,11 @@ public class TaskService {
         return vo;
     }
 
+    /**
+     * 将任务记录转换为任务列表项对象。
+     * @param row 任务记录
+     * @return 任务列表项
+     */
     private TaskItemVO toTaskItemVO(Map<String, Object> row) {
         TaskItemVO vo = new TaskItemVO();
         vo.setId(toLong(row.get("id")));
@@ -751,6 +887,12 @@ public class TaskService {
         return vo;
     }
 
+    /**
+     * 根据总分和评价数计算平均分。
+     * @param totalScore 总分
+     * @param commentCount 评价数
+     * @return 平均分
+     */
     private Double calculateAvgRating(Integer totalScore, Integer commentCount) {
         if (totalScore == null || commentCount == null || commentCount == 0) {
             return 0.0;
@@ -758,6 +900,11 @@ public class TaskService {
         return (double) totalScore / commentCount;
     }
 
+    /**
+     * 将订单记录转换为订单列表对象。
+     * @param row 订单记录
+     * @return 订单列表对象
+     */
     private OrderItemVO toOrderItemVO(Map<String, Object> row) {
         OrderItemVO vo = new OrderItemVO();
         vo.setId(toLong(row.get("id")));
@@ -781,10 +928,20 @@ public class TaskService {
         return vo;
     }
 
+    /**
+     * 将任意对象转换为字符串，空值返回 null。
+     * @param value 原始值
+     * @return 字符串或 null
+     */
     private String strOrNull(Object value) {
         return value == null ? null : String.valueOf(value);
     }
 
+    /**
+     * 安全地将任意对象转换为 Integer。
+     * @param value 原始值
+     * @return Integer 值或 null
+     */
     private Integer toInteger(Object value) {
         if (value == null) {
             return null;
@@ -799,6 +956,11 @@ public class TaskService {
         }
     }
 
+    /**
+     * 安全地将任意对象转换为 Double。
+     * @param value 原始值
+     * @return Double 值或 null
+     */
     private Double toDouble(Object value) {
         if (value == null) {
             return null;

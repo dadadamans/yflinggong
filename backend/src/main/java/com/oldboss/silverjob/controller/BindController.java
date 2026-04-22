@@ -8,6 +8,7 @@ import com.oldboss.silverjob.vo.BindListItemVO;
 import com.oldboss.silverjob.vo.BindOrderItemVO;
 import com.oldboss.silverjob.vo.BindStatusVO;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,10 +25,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/bind")
+@Slf4j
 public class BindController {
 
     private final BindService bindService;
 
+    /**
+     * 构造绑定控制器。
+     * @param bindService 绑定服务
+     */
     public BindController(BindService bindService) {
         this.bindService = bindService;
     }
@@ -39,6 +45,7 @@ public class BindController {
      */
     @PostMapping("/createCode")
     public Result<BindStatusVO> createCode(@RequestHeader("Authorization") String authorization) {
+        log.info("老人生成绑定码: {}" ,  authorization);
         return Result.success(bindService.createBindCode(authorization), "已生成新绑定码");
     }
 
@@ -51,6 +58,7 @@ public class BindController {
     @PostMapping("/confirm")
     public Result<Void> confirm(@RequestHeader("Authorization") String authorization,
                                                 @Valid @RequestBody BindConfirmRequestDTO request) {
+        log.info("子女确认绑定：{}" , authorization);
         bindService.confirmBind(authorization, request);
         return Result.success(null, "绑定成功");
     }
@@ -62,6 +70,7 @@ public class BindController {
      */
     @PostMapping("/unbind")
     public Result<Void> unbind(@RequestHeader("Authorization") String authorization) {
+        log.info("解除绑定关系：{}" , authorization);
         bindService.unbind(authorization);
         return Result.success(null, "已解除绑定");
     }
@@ -73,6 +82,7 @@ public class BindController {
      */
     @GetMapping("/elderlyInfo")
     public Result<BindInfoVO> elderlyInfo(@RequestHeader("Authorization") String authorization) {
+        log.info("获取绑定信息: {}" , authorization);
         return Result.success(bindService.bindInfo(authorization));
     }
 
@@ -86,6 +96,7 @@ public class BindController {
                                @RequestParam(value = "page", required = false) Integer page,
                                @RequestParam(value = "pageSize", required = false) Integer pageSize,
                                @RequestParam(value = "status", required = false) String status) {
+        log.info("获取绑定老人相关的订单列表: {}" , authorization);
         if (page == null && pageSize == null && status == null) {
             return Result.success(bindService.bindOrderList(authorization));
         }
@@ -101,6 +112,7 @@ public class BindController {
     public Result<?> list(@RequestHeader("Authorization") String authorization,
                           @RequestParam(value = "page", required = false) Integer page,
                           @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        log.info("获取所有绑定关系 : {}" ,  authorization);
         if (page == null && pageSize == null) {
             return Result.success(bindService.listAllBinds(authorization));
         }

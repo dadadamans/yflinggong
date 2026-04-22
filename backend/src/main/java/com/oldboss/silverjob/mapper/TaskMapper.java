@@ -8,6 +8,10 @@ import org.apache.ibatis.annotations.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 任务 Mapper
+ * 负责任务大厅、订单流转、名称同步和统计报表相关 SQL
+ */
 @Mapper
 public interface TaskMapper extends BaseMapper<Task> {
 

@@ -81,7 +81,6 @@ public class AdminStatsService {
     public AdminStatsVO getDashboardStats() {
         AdminStatsVO statsVO = new AdminStatsVO();
 
-        // ==================== 用户统计 ====================
         // 查询老人用户数量（role_type = 'elderly’）
         statsVO.setElderlyCount(userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getRoleType, "elderly")));
 
@@ -91,7 +90,6 @@ public class AdminStatsService {
         // 查询子女用户数量（role_type = 'child’）
         statsVO.setChildCount(userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getRoleType, "child")));
 
-        // ==================== 任务统计 ====================
         // 查询任务总数（selectCount(null) 表示不设置条件，相当于 count(*)）
         statsVO.setTaskCount(taskMapper.selectCount(null));
 
@@ -107,14 +105,12 @@ public class AdminStatsService {
         // 查询状态为 "done" 的任务数（已完成）
         statsVO.setDoneCount(taskMapper.selectCount(new LambdaQueryWrapper<Task>().eq(Task::getStatus, TaskStatus.DONE)));
 
-        // ==================== 绑定关系统计 ====================
         // 查询绑定关系总数
         statsVO.setBindCount(bindRelationMapper.selectCount(null));
 
         // 查询已确认的绑定关系数（confirmed = true）
         statsVO.setConfirmedBindCount(bindRelationMapper.selectCount(new LambdaQueryWrapper<BindRelation>().eq(BindRelation::getConfirmed, true)));
 
-        // ==================== 分布图表数据 ====================
         // 任务状态分布：如 {status: "waiting", count: 10}, {status: "done", count: 5}
         // SQL: SELECT status, count(*) as count FROM task GROUP BY status
         statsVO.setOrderStatusDist(taskMapper.selectStatusDistribution());
@@ -122,7 +118,6 @@ public class AdminStatsService {
         // 任务类型分布：如 {type: "陪伴", count: 8}, {type: "家务", count: 3}
         statsVO.setTaskTypeDist(taskMapper.selectTypeDistribution());
 
-        // ==================== 趋势图表数据 ====================
         // 过去7天的用户注册趋势
         statsVO.setUserTrend(userMapper.selectUserTrend());
 
