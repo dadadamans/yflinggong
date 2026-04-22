@@ -1,3 +1,14 @@
 backend/.idea/
 backend/target/
 backend/*.iml
+backend/.env
+.env
+web/.env
+.idea/
+postgres_data/
+uploads/
+backend/uploads/
+web/node_modules/
+web/dist/
+.DS_Store
+*.log

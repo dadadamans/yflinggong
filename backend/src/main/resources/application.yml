@@ -1,22 +1,39 @@
 server:
   port: 8080
 
+logging:
+  level:
+    com.oldboss.silverjob: INFO
+    com.zaxxer.hikari: INFO
+
 spring:
   application:
     name: silver-job-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/oldboss}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5432/oldboss}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:287556}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
-      mode: always
-      schema-locations: optional:file:./sql/schema.sql
-      data-locations: optional:file:./sql/seed.sql
+      mode: never
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+
+app:
+  auth:
+    session-expire-hours: 24
+  upload:
+    health-report-dir: ${HEALTH_REPORT_UPLOAD_DIR:${user.dir}/uploads/healthReports/}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true

@@ -1,0 +1,501 @@
+:root {
+  --bg: #f4efe7;
+  --bg-panel: #fffaf2;
+  --bg-muted: #efe6d7;
+  --line: #ddcfb8;
+  --text: #2f2a24;
+  --text-muted: #6c6255;
+  --primary: #b85c38;
+  --primary-deep: #8f4427;
+  --success: #2f7d4d;
+  --warning: #c57f17;
+  --danger: #b64747;
+  --shadow: 0 18px 48px rgba(120, 90, 50, 0.12);
+  --radius: 18px;
+  --font-base: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: var(--font-base);
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(184, 92, 56, 0.12), transparent 26%),
+    radial-gradient(circle at top right, rgba(47, 125, 77, 0.1), transparent 22%),
+    linear-gradient(180deg, #f6f1e7, #efe6d8 48%, #f8f5ef);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+}
+
+.side {
+  padding: 24px 18px;
+  background: rgba(255, 250, 242, 0.92);
+  border-right: 1px solid rgba(221, 207, 184, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  margin-bottom: 24px;
+}
+
+.brand h1,
+.brand h2 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.brand p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav a {
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  transition: 0.2s ease;
+}
+
+.nav a.router-link-active {
+  background: linear-gradient(135deg, var(--primary), #d7845c);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.main {
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.panel {
+  background: rgba(255, 250, 242, 0.96);
+  border: 1px solid rgba(221, 207, 184, 0.85);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hero-title,
+.section-title {
+  margin: 0 0 10px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.card-list {
+  display: grid;
+  gap: 16px;
+}
+
+.task-card,
+.order-card,
+.message-card,
+.stat-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  font-size: 18px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn,
+.btn-secondary,
+.btn-danger,
+.btn-ghost,
+.btn-success {
+  border: none;
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 14px 22px;
+  min-height: 52px;
+  font-size: 18px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn {
+  background: linear-gradient(135deg, var(--primary), #d7845c);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--success), #4da46d);
+  color: #fff;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #d06363);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.btn:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.field-half {
+  grid-column: span 1;
+}
+
+@media (max-width: 640px) {
+  .field-half {
+    grid-column: 1 / -1;
+  }
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 18px;
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.status.waiting {
+  color: #8a5a00;
+  background: #fff0ce;
+}
+
+.status.working {
+  color: #0e5e8a;
+  background: #dff2ff;
+}
+
+.status.done {
+  color: #19613d;
+  background: #dcf4e4;
+}
+
+.status.cancelled {
+  color: #7a2c2c;
+  background: #f8dfdf;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 18px;
+  margin: 10px 0 14px;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  gap: 18px;
+}
+
+.role-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.role-option {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  cursor: pointer;
+  background: rgba(255, 250, 242, 0.8);
+}
+
+.role-option.active {
+  border-color: var(--primary);
+  background: linear-gradient(160deg, rgba(184, 92, 56, 0.14), rgba(255, 250, 242, 0.95));
+}
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-box {
+  width: min(1120px, 100%);
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  line-height: 1.6;
+}
+
+.bubble.self {
+  align-self: flex-end;
+  background: #ffe4d4;
+}
+
+.bubble.other {
+  align-self: flex-start;
+  background: #f3ede3;
+}
+
+.empty {
+  padding: 28px 18px;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 16px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-size: 17px;
+}
+
+.table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+@media (max-width: 1024px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    border-right: none;
+    border-bottom: 1px solid rgba(221, 207, 184, 0.7);
+  }
+
+  .split,
+  .grid-4,
+  .grid-3,
+  .grid-2,
+  .form-grid,
+  .role-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding: 18px;
+  }
+}
+
+/* 老人端字体大小类 */
+body.font-medium {
+  font-size: 20px;
+}
+body.font-medium .task-card,
+body.font-medium .order-card,
+body.font-medium .message-card,
+body.font-medium .stat-card,
+body.font-medium .panel,
+body.font-medium .btn,
+body.font-medium .form-grid input,
+body.font-medium .form-grid textarea,
+body.font-medium .form-grid select,
+body.font-medium .meta,
+body.font-medium .task-type,
+body.font-medium .task-address,
+body.font-medium .task-time,
+body.font-medium .task-salary,
+body.font-medium .status {
+  font-size: 20px;
+}
+
+body.font-large {
+  font-size: 24px;
+}
+body.font-large .task-card,
+body.font-large .order-card,
+body.font-large .message-card,
+body.font-large .stat-card,
+body.font-large .panel,
+body.font-large .btn,
+body.font-large .form-grid input,
+body.font-large .form-grid textarea,
+body.font-large .form-grid select,
+body.font-large .meta,
+body.font-large .task-type,
+body.font-large .task-address,
+body.font-large .task-time,
+body.font-large .task-salary,
+body.font-large .status {
+  font-size: 24px;
+}
+
+body.font-xlarge {
+  font-size: 28px;
+}
+body.font-xlarge .task-card,
+body.font-xlarge .order-card,
+body.font-xlarge .message-card,
+body.font-xlarge .stat-card,
+body.font-xlarge .panel,
+body.font-xlarge .btn,
+body.font-xlarge .form-grid input,
+body.font-xlarge .form-grid textarea,
+body.font-xlarge .form-grid select,
+body.font-xlarge .meta,
+body.font-xlarge .task-type,
+body.font-xlarge .task-address,
+body.font-xlarge .task-time,
+body.font-xlarge .task-salary,
+body.font-xlarge .status {
+  font-size: 28px;
+}
+
+body.font-medium .field label,
+body.font-medium .tag-option,
+body.font-medium .table th,
+body.font-medium .table td {
+  font-size: 20px;
+}
+
+body.font-large .field label,
+body.font-large .tag-option,
+body.font-large .table th,
+body.font-large .table td {
+  font-size: 24px;
+}
+
+body.font-xlarge .field label,
+body.font-xlarge .tag-option,
+body.font-xlarge .table th,
+body.font-xlarge .table td {
+  font-size: 28px;
+}

@@ -1,0 +1,814 @@
+package com.oldboss.silverjob.service;
+
+import com.oldboss.silverjob.common.BizException;
+import com.oldboss.silverjob.common.PageQuery;
+import com.oldboss.silverjob.common.PageResult;
+import com.oldboss.silverjob.common.PageUtils;
+import com.oldboss.silverjob.common.TaskStatus;
+import com.oldboss.silverjob.common.TaskCategory;
+import com.oldboss.silverjob.dto.TaskFormRequestDTO;
+import com.oldboss.silverjob.mapper.BindRelationMapper;
+import com.oldboss.silverjob.mapper.TaskMapper;
+import com.oldboss.silverjob.model.CurrentUser;
+import com.oldboss.silverjob.vo.TaskDetailVO;
+import com.oldboss.silverjob.vo.TaskItemVO;
+import com.oldboss.silverjob.vo.OrderItemVO;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 任务服务
+ * 处理任务大厅、任务发布、接单、订单管理等业务逻辑
+ */
+@Service
+public class TaskService {
+
+    private static final DateTimeFormatter ORDER_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private final TaskMapper taskMapper;
+    private final BindRelationMapper bindRelationMapper;
+    private final AuthService authService;
+    private final UserService userService;
+    private final CommentService commentService;
+
+    public TaskService(TaskMapper taskMapper, BindRelationMapper bindRelationMapper, AuthService authService, UserService userService, CommentService commentService) {
+        this.taskMapper = taskMapper;
+        this.bindRelationMapper = bindRelationMapper;
+        this.authService = authService;
+        this.userService = userService;
+        this.commentService = commentService;
+    }
+
+    /**
+     * 获取任务大厅列表
+     * @param authorization Authorization 请求头
+     * @return 当前用户可见的任务列表
+     */
+    public List<TaskItemVO> taskList(String authorization) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Long userId = currentUser.getUserId();
+
+        if ("elderly".equals(role)) {
+            List<Long> childIds = bindRelationMapper.selectChildIdsByElderlyId(userId);
+            return findWaitingTasksExcludePublishers(childIds, role);
+        } else if ("employer".equals(role)) {
+            return taskMapper.selectTasksByPublisherId(userId).stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toTaskItemVO)
+                    .toList();
+        } else if ("child".equals(role)) {
+            return taskMapper.selectTasksByPublisherId(userId).stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toTaskItemVO)
+                    .toList();
+        }
+        return taskMapper.selectTaskList().stream()
+                .map(row -> mapRowWithSalary(row, role))
+                .map(this::toTaskItemVO)
+                .toList();
+    }
+
+    public PageResult<TaskItemVO> taskList(String authorization, Integer page, Integer pageSize) {
+        return taskList(authorization, page, pageSize, null);
+    }
+
+    public PageResult<TaskItemVO> taskList(String authorization, Integer page, Integer pageSize, String status) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Long userId = currentUser.getUserId();
+        PageQuery pageQuery = PageUtils.normalize(page, pageSize);
+        String normalizedStatus = status == null || status.isBlank() ? null : status.trim();
+
+        List<TaskItemVO> list;
+        long total;
+        if ("elderly".equals(role)) {
+            List<Long> childIds = bindRelationMapper.selectChildIdsByElderlyId(userId);
+            if (childIds == null || childIds.isEmpty()) {
+                list = taskMapper.selectWaitingTasksPage(pageQuery.getOffset(), pageQuery.getPageSize()).stream()
+                        .map(row -> mapRowWithSalary(row, role))
+                        .map(this::toTaskItemVO)
+                        .toList();
+                total = taskMapper.countWaitingTasks();
+            } else {
+                list = taskMapper.selectWaitingTasksExcludePublishersPage(childIds, pageQuery.getOffset(), pageQuery.getPageSize()).stream()
+                        .map(row -> mapRowWithSalary(row, role))
+                        .map(this::toTaskItemVO)
+                        .toList();
+                total = taskMapper.countWaitingTasksExcludePublishers(childIds);
+            }
+        } else if ("employer".equals(role) || "child".equals(role)) {
+            list = (normalizedStatus == null
+                    ? taskMapper.selectTasksByPublisherIdPage(userId, pageQuery.getOffset(), pageQuery.getPageSize())
+                    : taskMapper.selectTasksByPublisherIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
+                    .stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toTaskItemVO)
+                    .toList();
+            total = normalizedStatus == null
+                    ? taskMapper.countTasksByPublisherId(userId)
+                    : taskMapper.countTasksByPublisherIdAndStatus(userId, normalizedStatus);
+        } else {
+            list = taskMapper.selectTaskListPage(pageQuery.getOffset(), pageQuery.getPageSize()).stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toTaskItemVO)
+                    .toList();
+            total = taskMapper.countTaskList();
+        }
+        return PageUtils.buildPageResult(list, total, pageQuery);
+    }
+
+    private List<TaskItemVO> findWaitingTasksExcludePublishers(List<Long> excludePublisherIds, String role) {
+        if (excludePublisherIds == null || excludePublisherIds.isEmpty()) {
+            return taskMapper.selectWaitingTasks().stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toTaskItemVO)
+                    .toList();
+        }
+        return taskMapper.selectWaitingTasksExcludePublishers(excludePublisherIds).stream()
+                .map(row -> mapRowWithSalary(row, role))
+                .map(this::toTaskItemVO)
+                .toList();
+    }
+
+    /**
+     * 获取任务详情
+     * @param authorization Authorization 请求头
+     * @param id 任务ID
+     * @return 任务详情信息
+     */
+    public TaskDetailVO taskDetail(String authorization, Long id) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Map<String, Object> task = taskMapper.selectTaskById(id);
+        if (task == null) {
+            throw new BizException("任务不存在");
+        }
+        return toTaskDetailVO(mapRowWithSalary(task, role));
+    }
+
+    /**
+     * 获取待接单任务列表（管理员专用）
+     * @param authorization Authorization 请求头
+     * @return 所有待接单的任务列表
+     */
+    public List<TaskItemVO> adminWaitingTasks(String authorization) {
+        authService.requireAdmin(authorization);
+        return taskMapper.selectTasksByStatus(TaskStatus.WAITING).stream()
+                .map(row -> mapRowWithSalary(row, "admin"))
+                .map(this::toTaskItemVO)
+                .toList();
+    }
+
+    public PageResult<TaskItemVO> adminWaitingTasks(String authorization, Integer page, Integer pageSize) {
+        authService.requireAdmin(authorization);
+        PageQuery pageQuery = PageUtils.normalize(page, pageSize);
+        List<TaskItemVO> list = taskMapper.selectTasksByStatusPage(TaskStatus.WAITING, pageQuery.getOffset(), pageQuery.getPageSize()).stream()
+                .map(row -> mapRowWithSalary(row, "admin"))
+                .map(this::toTaskItemVO)
+                .toList();
+        long total = taskMapper.countTasksByStatus(TaskStatus.WAITING);
+        return PageUtils.buildPageResult(list, total, pageQuery);
+    }
+
+    /**
+     * 发布新任务
+     * @param authorization Authorization 请求头
+     * @param request 任务表单数据
+     */
+    @Transactional
+    public void addTask(String authorization, TaskFormRequestDTO request) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!Arrays.asList("employer", "child").contains(currentUser.getRoleType())) {
+            throw new BizException("当前身份不能发布任务");
+        }
+        if (safe(request.getTitle()).isEmpty() || safe(request.getType()).isEmpty() || safe(request.getAddress()).isEmpty()
+                || request.getSalary() == null || safe(request.getTimeText()).isEmpty() || safe(request.getContent()).isEmpty()) {
+            throw new BizException("请把任务信息填写完整");
+        }
+
+        validateTaskTime(request.getTimeText());
+
+        String category = safe(request.getCategory());
+        String subType = safe(request.getType());
+        String taskType = buildTaskType(category, subType);
+
+        long publisherId = currentUser.getUserId();
+        String publisherName = str(currentUser.getProfile().get("nickname"));
+        if (publisherName == null || publisherName.isEmpty()) {
+            publisherName = str(currentUser.getProfile().get("realName"));
+        }
+        if (publisherName == null || publisherName.isEmpty()) {
+            publisherName = "用户" + publisherId;
+        }
+
+        taskMapper.insertTask(taskType, request.getTitle().trim(), request.getAddress().trim(),
+                request.getTimeText().trim(), request.getSalary(), request.getContent().trim(),
+                publisherId, publisherName, currentUser.getRoleType());
+    }
+
+    /**
+     * 老人申请接单
+     * @param authorization Authorization 请求头
+     * @param id 任务ID
+     */
+    @Transactional
+    public void applyTask(String authorization, Long id) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!"elderly".equals(currentUser.getRoleType())) {
+            throw new BizException("只有老人用户可以申请接单");
+        }
+
+        if (!userService.isHealthReportApproved(currentUser.getUserId())) {
+            throw new BizException("您的体检报告还未通过审核，无法申请接单");
+        }
+
+        Map<String, Object> task = taskMapper.selectTaskById(id);
+        if (task == null) {
+            throw new BizException("任务不存在");
+        }
+        if (!TaskStatus.WAITING.equals(task.get("status"))) {
+            throw new BizException("当前任务不能申请接单");
+        }
+
+        long elderlyId = currentUser.getUserId();
+        String elderlyName = getUserDisplayName(currentUser);
+
+        int updated = taskMapper.updateTaskToApplying(id, elderlyId, elderlyName);
+        if (updated == 0) {
+            throw new BizException("当前任务不能申请接单");
+        }
+    }
+
+    /**
+     * 雇主批准接单
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void approveTask(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!Arrays.asList("employer", "child").contains(currentUser.getRoleType())) {
+            throw new BizException("只有雇主可以批准接单");
+        }
+
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("任务不存在");
+        }
+        if (!TaskStatus.APPLYING.equals(task.get("status"))) {
+            throw new BizException("没有待审核的申请");
+        }
+        Long publisherId = toLong(task.get("publisher_id"));
+        if (!publisherId.equals(currentUser.getUserId())) {
+            throw new BizException("只能审核自己发布的任务");
+        }
+
+        int updated = taskMapper.updateTaskApprove(taskId);
+        if (updated == 0) {
+            throw new BizException("审核失败");
+        }
+    }
+
+    /**
+     * 雇主拒绝接单
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void rejectTask(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!Arrays.asList("employer", "child").contains(currentUser.getRoleType())) {
+            throw new BizException("只有雇主可以拒绝接单");
+        }
+
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("任务不存在");
+        }
+        if (!TaskStatus.APPLYING.equals(task.get("status"))) {
+            throw new BizException("没有待审核的申请");
+        }
+        Long publisherId = toLong(task.get("publisher_id"));
+        if (!publisherId.equals(currentUser.getUserId())) {
+            throw new BizException("只能审核自己发布的任务");
+        }
+
+        int updated = taskMapper.updateTaskReject(taskId);
+        if (updated == 0) {
+            throw new BizException("拒绝失败");
+        }
+    }
+
+    private String getUserDisplayName(CurrentUser user) {
+        String nickname = user.getProfile().get("nickname") != null
+            ? String.valueOf(user.getProfile().get("nickname"))
+            : null;
+        if (nickname != null && !nickname.isEmpty()) {
+            return nickname;
+        }
+        String realName = user.getProfile().get("realName") != null
+            ? String.valueOf(user.getProfile().get("realName"))
+            : null;
+        if (realName != null && !realName.isEmpty()) {
+            return realName;
+        }
+        return "用户" + user.getUserId();
+    }
+
+    /**
+     * 获取我的任务列表
+     * @param authorization Authorization 请求头
+     * @return 当前用户发布的任务列表
+     */
+    public List<Map<String, Object>> myTaskList(String authorization) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        Long userId = currentUser.getUserId();
+        String role = currentUser.getRoleType();
+        return taskMapper.selectTasksByPublisherId(userId).stream().map(row -> mapRowWithSalary(row, role)).toList();
+    }
+
+    private String displayName(Map<String, Object> user) {
+        if (user == null) {
+            return "";
+        }
+        String roleType = str(user.get("role_type"));
+        if ("elderly".equals(roleType)) {
+            String realName = nullToEmpty(user.get("real_name"));
+            return realName.isEmpty() ? nullToEmpty(user.get("nickname")) : realName;
+        }
+        String realName = nullToEmpty(user.get("real_name"));
+        String nickname = nullToEmpty(user.get("nickname"));
+        return realName.isEmpty() ? nickname : realName;
+    }
+
+    private String buildOrderCode() {
+        return "#" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+                + String.format("%02d", taskMapper.getNextOrderId());
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String str(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String nullToEmpty(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private void validateTaskTime(String timeText) {
+        if (timeText == null || timeText.isEmpty()) {
+            return;
+        }
+        String[] parts = timeText.trim().split("\\s+", 2);
+        if (parts.length != 2 || !parts[1].contains("-")) {
+            throw new BizException("任务时间格式不正确");
+        }
+
+        String datePart = parts[0];
+        String[] timeRange = parts[1].split("-", 2);
+        if (timeRange.length != 2) {
+            throw new BizException("任务时间格式不正确");
+        }
+
+        LocalDate taskDate;
+        LocalTime startTime;
+        LocalTime endTime;
+        try {
+            taskDate = LocalDate.parse(datePart);
+            startTime = LocalTime.parse(timeRange[0].trim());
+            endTime = LocalTime.parse(timeRange[1].trim());
+        } catch (DateTimeParseException e) {
+            throw new BizException("任务时间格式不正确");
+        }
+
+        if (!endTime.isAfter(startTime)) {
+            throw new BizException("任务时间格式不正确");
+        }
+
+        LocalDate today = LocalDate.now();
+        if (taskDate.isBefore(today)) {
+            throw new BizException("任务时间不能早于当前日期");
+        }
+
+        if (taskDate.isEqual(today)) {
+            LocalTime now = LocalTime.now();
+            LocalTime minTime = now.plusHours(2);
+            if (startTime.isBefore(minTime)) {
+                throw new BizException("今天需提前2小时发布");
+            }
+        }
+    }
+
+    private String buildTaskType(String category, String subType) {
+        if (category.isEmpty() && subType.isEmpty()) {
+            return "";
+        }
+        if (!category.isEmpty() && !subType.isEmpty()) {
+            return category + ":" + subType;
+        }
+        if (!subType.isEmpty()) {
+            TaskCategory cat = TaskCategory.getBySubType(subType);
+            if (cat != null) {
+                return cat.getCode() + ":" + subType;
+            }
+            return subType;
+        }
+        return category + ":";
+    }
+
+    /**
+     * 获取订单列表（根据用户角色返回不同范围的订单）
+     * @param authorization Authorization 请求头
+     * @return 订单列表
+     */
+    public List<OrderItemVO> orderList(String authorization) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Long userId = currentUser.getUserId();
+
+        if ("admin".equals(role)) {
+            return taskMapper.selectAllOrders().stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+        } else if ("employer".equals(role) || "child".equals(role)) {
+            return taskMapper.selectOrdersByPublisherId(userId).stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+        } else if ("elderly".equals(role)) {
+            return taskMapper.selectOrdersByElderlyId(userId).stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    public PageResult<OrderItemVO> orderList(String authorization, Integer page, Integer pageSize) {
+        return orderList(authorization, page, pageSize, null);
+    }
+
+    public PageResult<OrderItemVO> orderList(String authorization, Integer page, Integer pageSize, String status) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Long userId = currentUser.getUserId();
+        PageQuery pageQuery = PageUtils.normalize(page, pageSize);
+        String normalizedStatus = status == null || status.isBlank() ? null : status.trim();
+
+        List<OrderItemVO> list;
+        long total;
+        if ("admin".equals(role)) {
+            list = (normalizedStatus == null
+                    ? taskMapper.selectAllOrdersPage(pageQuery.getOffset(), pageQuery.getPageSize())
+                    : taskMapper.selectAllOrdersPageByStatus(normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
+                    .stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+            total = normalizedStatus == null ? taskMapper.countAllOrders() : taskMapper.countAllOrdersByStatus(normalizedStatus);
+        } else if ("employer".equals(role) || "child".equals(role)) {
+            list = (normalizedStatus == null
+                    ? taskMapper.selectOrdersByPublisherIdPage(userId, pageQuery.getOffset(), pageQuery.getPageSize())
+                    : taskMapper.selectOrdersByPublisherIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
+                    .stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+            total = normalizedStatus == null
+                    ? taskMapper.countOrdersByPublisherId(userId)
+                    : taskMapper.countOrdersByPublisherIdAndStatus(userId, normalizedStatus);
+        } else if ("elderly".equals(role)) {
+            list = (normalizedStatus == null
+                    ? taskMapper.selectOrdersByElderlyIdPage(userId, pageQuery.getOffset(), pageQuery.getPageSize())
+                    : taskMapper.selectOrdersByElderlyIdPageAndStatus(userId, normalizedStatus, pageQuery.getOffset(), pageQuery.getPageSize()))
+                    .stream()
+                    .map(row -> mapRowWithSalary(row, role))
+                    .map(this::toOrderItemVO)
+                    .toList();
+            total = normalizedStatus == null
+                    ? taskMapper.countOrdersByElderlyId(userId)
+                    : taskMapper.countOrdersByElderlyIdAndStatus(userId, normalizedStatus);
+        } else {
+            list = List.of();
+            total = 0;
+        }
+        return PageUtils.buildPageResult(list, total, pageQuery);
+    }
+
+    /**
+     * 完成任务（老人端）
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void finishOrder(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!"elderly".equals(currentUser.getRoleType())) {
+            throw new BizException("当前身份不能完成任务");
+        }
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("订单不存在");
+        }
+        Long elderlyId = toLong(task.get("elderly_id"));
+        if (!elderlyId.equals(currentUser.getUserId())) {
+            throw new BizException("只能完成自己接的订单");
+        }
+        String status = (String) task.get("status");
+        if (!TaskStatus.WORKING.equals(status)) {
+            throw new BizException("只有进行中的订单才能完成");
+        }
+        taskMapper.updateTaskToPendingPayment(taskId);
+    }
+
+    /**
+     * 支付订单（雇主/子女端）
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void payOrder(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        if (!Arrays.asList("employer", "child").contains(currentUser.getRoleType())) {
+            throw new BizException("当前身份不能支付");
+        }
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("订单不存在");
+        }
+        Long publisherId = toLong(task.get("publisher_id"));
+        if (!publisherId.equals(currentUser.getUserId())) {
+            throw new BizException("只能支付自己发布的订单");
+        }
+        String status = (String) task.get("status");
+        if (!TaskStatus.PENDING_PAYMENT.equals(status)) {
+            throw new BizException("只有待支付的订单才能支付");
+        }
+        taskMapper.updateTaskToDone(taskId);
+    }
+
+    /**
+     * 取消订单（雇主/子女端）
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void cancelOrder(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        if (!Arrays.asList("employer", "child").contains(role)) {
+            throw new BizException("只有雇主或子女可以取消订单");
+        }
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("订单不存在");
+        }
+        String status = (String) task.get("status");
+        if (!TaskStatus.WAITING.equals(status)) {
+            throw new BizException("只有待接单的订单才能取消");
+        }
+        Long publisherId = toLong(task.get("publisher_id"));
+        if (!publisherId.equals(currentUser.getUserId())) {
+            throw new BizException("只能取消自己发布的订单");
+        }
+        taskMapper.updateTaskToCancelled(taskId);
+    }
+
+    /**
+     * 删除订单
+     * @param authorization Authorization 请求头
+     * @param taskId 任务ID
+     */
+    @Transactional
+    public void deleteOrder(String authorization, Long taskId) {
+        CurrentUser currentUser = authService.requireUser(authorization);
+        String role = currentUser.getRoleType();
+        Map<String, Object> task = taskMapper.selectTaskById(taskId);
+        if (task == null) {
+            throw new BizException("订单不存在");
+        }
+        String status = (String) task.get("status");
+        if ("admin".equals(role)) {
+            commentService.deleteCommentsByTaskId(taskId);
+            taskMapper.deleteTaskById(taskId);
+        } else if (Arrays.asList("employer", "child").contains(role)) {
+            if (!TaskStatus.WAITING.equals(status)) {
+                throw new BizException("只能删除待接单的订单");
+            }
+            Long publisherId = toLong(task.get("publisher_id"));
+            if (!publisherId.equals(currentUser.getUserId())) {
+                throw new BizException("只能删除自己发布的订单");
+            }
+            taskMapper.deleteTaskById(taskId);
+        } else {
+            throw new BizException("当前身份无法删除订单");
+        }
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static final double PLATFORM_FEE_SKILL = 0.10;
+    private static final double PLATFORM_FEE_OTHER = 0.05;
+
+    private double calculatePlatformFee(Integer salary, String taskType) {
+        if (salary == null || taskType == null) return 0;
+        if (taskType.startsWith("skill:")) {
+            return salary * PLATFORM_FEE_SKILL;
+        }
+        return salary * PLATFORM_FEE_OTHER;
+    }
+
+    private double calculateDisplaySalary(Integer salary, String taskType, String currentRole) {
+        if (salary == null) return 0;
+        if ("elderly".equals(currentRole)) {
+            double platformFee = calculatePlatformFee(salary, taskType);
+            return salary - platformFee;
+        }
+        return salary;
+    }
+
+    private Map<String, Object> mapRow(Map<String, Object> row) {
+        return row;
+    }
+
+    private Map<String, Object> mapRowWithSalary(Map<String, Object> row, String currentRole) {
+        Integer salary = (Integer) row.get("salary");
+        String taskType = (String) row.get("task_type");
+
+        double platformFee = calculatePlatformFee(salary, taskType);
+        double displaySalary = calculateDisplaySalary(salary, taskType, currentRole);
+
+        row.put("platformFee", platformFee);
+        row.put("displaySalary", displaySalary);
+
+        String chineseType = TaskCategory.getChineseLabel(taskType);
+        row.put("taskType", chineseType);
+
+        Object startTime = row.get("start_time");
+        Object finishTime = row.get("finish_time");
+        if (startTime != null) {
+            String startStr = startTime.toString();
+            if (startStr.contains("T")) {
+                row.put("formattedStartTime", startStr.replace("T", " ").substring(0, 16));
+            }
+        }
+        if (finishTime != null) {
+            String finishStr = finishTime.toString();
+            if (finishStr.contains("T")) {
+                row.put("formattedFinishTime", finishStr.replace("T", " ").substring(0, 16));
+            }
+        }
+
+        return row;
+    }
+
+    private TaskDetailVO toTaskDetailVO(Map<String, Object> row) {
+        TaskDetailVO vo = new TaskDetailVO();
+        vo.setId(toLong(row.get("id")));
+        vo.setTitle(strOrNull(row.get("title")));
+        vo.setTaskType(strOrNull(row.get("taskType")));
+        vo.setAddress(strOrNull(row.get("address")));
+        vo.setTimeText(strOrNull(row.get("time_text")));
+        vo.setSalary(toInteger(row.get("salary")));
+        vo.setPlatformFee(toDouble(row.get("platformFee")));
+        vo.setDisplaySalary(toDouble(row.get("displaySalary")));
+        vo.setContent(strOrNull(row.get("content")));
+        vo.setPublisherId(toLong(row.get("publisher_id")));
+        vo.setPublisherName(strOrNull(row.get("publisher_name")));
+        vo.setPublisherRole(strOrNull(row.get("publisher_role")));
+        vo.setElderlyId(toLong(row.get("elderly_id")));
+        vo.setElderlyName(strOrNull(row.get("elderly_name")));
+        vo.setStatus(strOrNull(row.get("status")));
+        vo.setSettleText(strOrNull(row.get("settle_text")));
+        vo.setFormattedStartTime(strOrNull(row.get("formattedStartTime")));
+        vo.setFormattedFinishTime(strOrNull(row.get("formattedFinishTime")));
+        return vo;
+    }
+
+    private TaskItemVO toTaskItemVO(Map<String, Object> row) {
+        TaskItemVO vo = new TaskItemVO();
+        vo.setId(toLong(row.get("id")));
+        vo.setTitle(strOrNull(row.get("title")));
+        vo.setTaskType(strOrNull(row.get("taskType")));
+        vo.setAddress(strOrNull(row.get("address")));
+        vo.setTimeText(strOrNull(row.get("time_text")));
+        vo.setSalary(toInteger(row.get("salary")));
+        vo.setPlatformFee(toDouble(row.get("platformFee")));
+        vo.setDisplaySalary(toDouble(row.get("displaySalary")));
+        vo.setContent(strOrNull(row.get("content")));
+        vo.setPublisherId(toLong(row.get("publisher_id")));
+        vo.setPublisherName(strOrNull(row.get("publisher_name")));
+
+        Integer publisherTotal = toInteger(row.get("publisher_total_score"));
+        Integer publisherCount = toInteger(row.get("publisher_comment_count"));
+        vo.setPublisherAvgRating(calculateAvgRating(publisherTotal, publisherCount));
+        vo.setPublisherCommentCount(publisherCount);
+
+        vo.setElderlyId(toLong(row.get("elderly_id")));
+        vo.setElderlyName(strOrNull(row.get("elderly_name")));
+        vo.setElderlyMobile(strOrNull(row.get("elderly_mobile")));
+        vo.setElderlyHealthCondition(strOrNull(row.get("elderly_health_condition")));
+
+        Integer elderlyTotal = toInteger(row.get("elderly_total_score"));
+        Integer elderlyCount = toInteger(row.get("elderly_comment_count"));
+        vo.setElderlyAvgRating(calculateAvgRating(elderlyTotal, elderlyCount));
+        vo.setElderlyCommentCount(elderlyCount);
+
+        vo.setSettleText(strOrNull(row.get("settle_text")));
+        vo.setStatus(strOrNull(row.get("status")));
+        vo.setFormattedStartTime(strOrNull(row.get("formattedStartTime")));
+        vo.setFormattedFinishTime(strOrNull(row.get("formattedFinishTime")));
+        return vo;
+    }
+
+    private Double calculateAvgRating(Integer totalScore, Integer commentCount) {
+        if (totalScore == null || commentCount == null || commentCount == 0) {
+            return 0.0;
+        }
+        return (double) totalScore / commentCount;
+    }
+
+    private OrderItemVO toOrderItemVO(Map<String, Object> row) {
+        OrderItemVO vo = new OrderItemVO();
+        vo.setId(toLong(row.get("id")));
+        String orderCode = strOrNull(row.get("order_code"));
+        vo.setOrderCode(orderCode);
+        vo.setCode(orderCode);
+        vo.setTitle(strOrNull(row.get("title")));
+        vo.setAddress(strOrNull(row.get("address")));
+        vo.setTimeText(strOrNull(row.get("time_text")));
+        vo.setSalary(toInteger(row.get("salary")));
+        vo.setPlatformFee(toDouble(row.get("platformFee")));
+        vo.setDisplaySalary(toDouble(row.get("displaySalary")));
+        vo.setElderlyName(strOrNull(row.get("elderly_name")));
+        vo.setPublisherId(toLong(row.get("publisher_id")));
+        vo.setPublisherName(strOrNull(row.get("publisher_name")));
+        vo.setPublisherMobile(strOrNull(row.get("publisher_mobile")));
+        vo.setSettleText(strOrNull(row.get("settle_text")));
+        vo.setStatus(strOrNull(row.get("status")));
+        vo.setFormattedStartTime(strOrNull(row.get("formattedStartTime")));
+        vo.setFormattedFinishTime(strOrNull(row.get("formattedFinishTime")));
+        return vo;
+    }
+
+    private String strOrNull(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private Double toDouble(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+}
