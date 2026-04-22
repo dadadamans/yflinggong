@@ -1,26 +1,27 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useUserStore } from "../stores/user";
-import LoginView from "../views/login/LoginView.vue";
-import HomeView from "../views/home/HomeView.vue";
-import UserLayout from "../layout/UserLayout.vue";
-import AdminLayout from "../layout/AdminLayout.vue";
-import ElderlyTasksView from "../views/elderly/ElderlyTasksView.vue";
-import ElderlyTaskDetailView from "../views/elderly/ElderlyTaskDetailView.vue";
-import ElderlyOrdersView from "../views/elderly/ElderlyOrdersView.vue";
-import ElderlyProfileView from "../views/elderly/ElderlyProfileView.vue";
-import BindView from "../views/child/BindView.vue";
-import EmployerPublishView from "../views/employer/EmployerPublishView.vue";
-import EmployerTasksView from "../views/employer/EmployerTasksView.vue";
-import EmployerProfileView from "../views/employer/EmployerProfileView.vue";
-import ChildElderlyView from "../views/child/ChildElderlyView.vue";
-import ChildOrdersView from "../views/child/ChildOrdersView.vue";
-import ChildMessagesView from "../views/child/ChildMessagesView.vue";
-import ChildProfileView from "../views/child/ChildProfileView.vue";
-import AdminDashboardView from "../views/admin/AdminDashboardView.vue";
-import AdminUsersView from "../views/admin/AdminUsersView.vue";
-import AdminTasksView from "../views/admin/AdminTasksView.vue";
-import AdminOrdersView from "../views/admin/AdminOrdersView.vue";
-import AdminBindsView from "../views/admin/AdminBindsView.vue";
+
+const LoginView = () => import("../views/login/LoginView.vue");
+const HomeView = () => import("../views/home/HomeView.vue");
+const UserLayout = () => import("../layout/UserLayout.vue");
+const AdminLayout = () => import("../layout/AdminLayout.vue");
+const ElderlyTasksView = () => import("../views/elderly/ElderlyTasksView.vue");
+const ElderlyTaskDetailView = () => import("../views/elderly/ElderlyTaskDetailView.vue");
+const ElderlyOrdersView = () => import("../views/elderly/ElderlyOrdersView.vue");
+const ElderlyProfileView = () => import("../views/elderly/ElderlyProfileView.vue");
+const BindView = () => import("../views/child/BindView.vue");
+const EmployerPublishView = () => import("../views/employer/EmployerPublishView.vue");
+const EmployerTasksView = () => import("../views/employer/EmployerTasksView.vue");
+const EmployerProfileView = () => import("../views/employer/EmployerProfileView.vue");
+const ChildElderlyView = () => import("../views/child/ChildElderlyView.vue");
+const ChildOrdersView = () => import("../views/child/ChildOrdersView.vue");
+const ChildMessagesView = () => import("../views/child/ChildMessagesView.vue");
+const ChildProfileView = () => import("../views/child/ChildProfileView.vue");
+const AdminDashboardView = () => import("../views/admin/AdminDashboardView.vue");
+const AdminUsersView = () => import("../views/admin/AdminUsersView.vue");
+const AdminTasksView = () => import("../views/admin/AdminTasksView.vue");
+const AdminOrdersView = () => import("../views/admin/AdminOrdersView.vue");
+const AdminBindsView = () => import("../views/admin/AdminBindsView.vue");
 
 const routes = [
   {
