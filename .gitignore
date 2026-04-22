@@ -1,5 +1,7 @@
 backend/.idea/
-backend/target/
+backend/target/*
+!backend/target/
+!backend/target/silver-job-backend-1.0.0.jar
 backend/*.iml
 backend/.env
 .env

@@ -1,15 +1,19 @@
 services:
   db:
+    # 使用官方 Postgres 镜像，容器启动时会自动执行挂载进去的初始化脚本。
     image: postgres:15-alpine
     container_name: silver-job-db
     env_file:
       - ./backend/.env
     volumes:
+      # 持久化数据库数据，避免容器删除后数据丢失。
       - ./postgres_data:/var/lib/postgresql/data
+      # 首次初始化数据库结构和默认数据。
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
       - ./backend/sql/docker-init/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/sql/docker-init/02-admin.sh:/docker-entrypoint-initdb.d/02-admin.sh:ro
     healthcheck:
+      # 等待数据库真正可连接后，再允许依赖它的服务启动。
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
@@ -19,6 +23,7 @@ services:
 
   backend:
     build:
+      # 后端镜像只负责运行，jar 需要先在宿主机执行 mvn clean package 生成。
       context: ./backend
       dockerfile: Dockerfile
     container_name: silver-job-backend
@@ -31,17 +36,21 @@ services:
       db:
         condition: service_healthy
     environment:
+      # 容器内通过服务名 db 访问 PostgreSQL，而不是 localhost。
       - DB_URL=jdbc:postgresql://db:5432/${DB_NAME:-oldboss}
+      # 将上传目录固定到容器内路径，再映射到宿主机目录。
       - HEALTH_REPORT_UPLOAD_DIR=/app/uploads/healthReports
     volumes:
       - ./uploads:/app/uploads
     extra_hosts:
+      # 允许容器访问宿主机服务。
       - "host.docker.internal:host-gateway"
     networks:
       - silver-network
 
   frontend:
     build:
+      # 前端镜像会在构建阶段执行 npm install 和 npm run build。
       context: ./web
       dockerfile: Dockerfile
     container_name: silver-job-web
@@ -54,5 +63,6 @@ services:
       - silver-network
 
 networks:
+  # 统一的 bridge 网络，方便前后端和数据库通过服务名互相访问。
   silver-network:
     driver: bridge
