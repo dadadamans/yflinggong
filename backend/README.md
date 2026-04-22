@@ -1,6 +1,50 @@
 # 银发零工后端
 
-## 数据库初始化
+## Docker 启动
+
+如果使用根目录的 `docker-compose.yml`，先准备环境文件：
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+然后按实际环境修改 `backend/.env`，可参考：
+
+```env
+DB_NAME=oldboss
+DB_USERNAME=postgres
+DB_PASSWORD=YourStrongDbPassword123!
+POSTGRES_DB=oldboss
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=YourStrongDbPassword123!
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=YourStrongAdminPassword123!
+ADMIN_NICKNAME=管理员
+ADMIN_REAL_NAME=管理员
+ADMIN_MOBILE=13600000000
+```
+
+变量说明：
+
+1. `DB_USERNAME` / `DB_PASSWORD`：后端程序连接 PostgreSQL 时使用的账号密码。
+2. `POSTGRES_USER` / `POSTGRES_PASSWORD`：PostgreSQL 容器首次初始化时创建数据库用户使用的账号密码。
+3. `DB_PASSWORD` 和 `POSTGRES_PASSWORD` 通常保持一致，否则后端可能连不上数据库。
+4. `ADMIN_USERNAME` / `ADMIN_PASSWORD`：系统初始化管理员账号，登录管理端时使用。
+
+然后回到项目根目录执行：
+
+```bash
+docker compose up -d --build
+```
+
+说明：
+
+1. PostgreSQL、后端、前端都会一起启动。
+2. 体检报告会落到项目根目录 `uploads/healthReports/`。
+3. 数据库数据会落到项目根目录 `postgres_data/`。
+
+## 本地数据库初始化
 
 当前项目默认连接本地 PostgreSQL：
 
@@ -8,7 +52,7 @@
 jdbc:postgresql://127.0.0.1:5432/oldboss
 ```
 
-首次启动前，确保 PostgreSQL 已运行；如果数据库还是空的，请手动执行：
+如果不使用 Docker，而是本地 PostgreSQL 单独启动，确保数据库已运行；如果数据库还是空的，请手动执行：
 
 ```bash
 cd backend
@@ -142,7 +186,10 @@ http://127.0.0.1:8080
 
 ```text
 DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_PASSWORD=replace_with_strong_password
+POSTGRES_DB=oldboss
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=replace_with_strong_password
 ```
 
 说明：

@@ -182,12 +182,13 @@ const conditions = [
   { value: "fair", label: "一般" }
 ];
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
 function getFullUrl(url) {
   if (!url) return "";
   if (url.startsWith("http")) return url;
-  return baseUrl + url;
+  if (url.startsWith("/")) {
+    return `${window.location.origin}${url}`;
+  }
+  return `${window.location.origin}/${url}`;
 }
 
 function roleText(role) {

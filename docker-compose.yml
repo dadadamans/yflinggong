@@ -1,22 +1,16 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: silver-job-db
     env_file:
       - ./backend/.env
-    environment:
-      POSTGRES_DB: ${DB_NAME:-oldboss}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-287556}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
       - ./backend/sql/docker-init/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/sql/docker-init/02-admin.sh:/docker-entrypoint-initdb.d/02-admin.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-oldboss}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10

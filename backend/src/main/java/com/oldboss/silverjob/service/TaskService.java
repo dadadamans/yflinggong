@@ -273,7 +273,8 @@ public class TaskService {
             throw new BizException("只能审核自己发布的任务");
         }
 
-        int updated = taskMapper.updateTaskApprove(taskId);
+        String orderCode = buildOrderCode();
+        int updated = taskMapper.updateTaskApprove(taskId, orderCode);
         if (updated == 0) {
             throw new BizException("审核失败");
         }
@@ -676,15 +677,15 @@ public class TaskService {
         Object startTime = row.get("start_time");
         Object finishTime = row.get("finish_time");
         if (startTime != null) {
-            String startStr = startTime.toString();
-            if (startStr.contains("T")) {
-                row.put("formattedStartTime", startStr.replace("T", " ").substring(0, 16));
+            String startStr = startTime.toString().replace("T", " ");
+            if (startStr.length() >= 16) {
+                row.put("formattedStartTime", startStr.substring(0, 16));
             }
         }
         if (finishTime != null) {
-            String finishStr = finishTime.toString();
-            if (finishStr.contains("T")) {
-                row.put("formattedFinishTime", finishStr.replace("T", " ").substring(0, 16));
+            String finishStr = finishTime.toString().replace("T", " ");
+            if (finishStr.length() >= 16) {
+                row.put("formattedFinishTime", finishStr.substring(0, 16));
             }
         }
 

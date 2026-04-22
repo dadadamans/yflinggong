@@ -231,8 +231,9 @@ public interface TaskMapper extends BaseMapper<Task> {
             "updated_at = current_timestamp where id = #{taskId} and status = '" + TaskStatus.WAITING + "'")
     int updateTaskToApplying(@Param("taskId") Long taskId, @Param("elderlyId") Long elderlyId, @Param("elderlyName") String elderlyName);
 
-    @Update("update task set status = '" + TaskStatus.WORKING + "', updated_at = current_timestamp where id = #{taskId} and status = '" + TaskStatus.APPLYING + "'")
-    int updateTaskApprove(@Param("taskId") Long taskId);
+    @Update("update task set status = '" + TaskStatus.WORKING + "', order_code = #{orderCode}, start_time = current_timestamp, " +
+            "updated_at = current_timestamp where id = #{taskId} and status = '" + TaskStatus.APPLYING + "'")
+    int updateTaskApprove(@Param("taskId") Long taskId, @Param("orderCode") String orderCode);
 
     @Update("update task set status = '" + TaskStatus.WAITING + "', elderly_id = null, elderly_name = null, " +
             "updated_at = current_timestamp where id = #{taskId} and status = '" + TaskStatus.APPLYING + "'")

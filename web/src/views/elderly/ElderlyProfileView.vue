@@ -104,8 +104,10 @@ const ratingStats = reactive({
 const fullHealthReportUrl = computed(() => {
   if (!healthReportUrl.value) return "";
   if (healthReportUrl.value.startsWith("http")) return healthReportUrl.value;
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-  return baseUrl + healthReportUrl.value;
+  if (healthReportUrl.value.startsWith("/")) {
+    return `${window.location.origin}${healthReportUrl.value}`;
+  }
+  return `${window.location.origin}/${healthReportUrl.value}`;
 });
 
 const uploadButtonText = computed(() => {

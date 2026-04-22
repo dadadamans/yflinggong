@@ -6,7 +6,7 @@ psql \
   --username "$POSTGRES_USER" \
   --dbname "$POSTGRES_DB" \
   --set admin_username="${ADMIN_USERNAME:-admin}" \
-  --set admin_password="${ADMIN_PASSWORD:-123456}" \
+  --set admin_password="${ADMIN_PASSWORD:-replace_with_strong_password}" \
   --set admin_nickname="${ADMIN_NICKNAME:-管理员}" \
   --set admin_real_name="${ADMIN_REAL_NAME:-管理员}" \
   --set admin_mobile="${ADMIN_MOBILE:-13600000000}" <<'SQL'

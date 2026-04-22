@@ -262,13 +262,20 @@ public class BindService {
             if (relation != null) {
                 Long elderlyId = ((Number) relation.get("elderly_user_id")).longValue();
                 Map<String, Object> elderly = userMapper.selectUserById(elderlyId);
+                Map<String, Object> child = userMapper.selectUserById(userId);
                 result.put("confirmed", "true".equals(String.valueOf(relation.get("confirmed"))));
                 result.put("elderlyName", elderly == null ? "" : displayName(elderly));
                 result.put("elderlyId", elderlyId);
+                result.put("healthReportStatus", elderly == null ? "" : str(elderly.get("health_report_status")));
+                result.put("childName", child == null ? "" : displayName(child));
+                result.put("childRelation", child == null ? "" : str(child.get("relation")));
             } else {
                 result.put("confirmed", false);
                 result.put("elderlyName", "");
                 result.put("elderlyId", null);
+                result.put("healthReportStatus", "");
+                result.put("childName", "");
+                result.put("childRelation", "");
             }
             return result;
         }
