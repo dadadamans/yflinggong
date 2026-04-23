@@ -132,6 +132,13 @@ public class CommentService {
         return commentMapper.hasCommented(taskId, reviewerId);
     }
 
+    public Set<Long> findCommentedTaskIds(Set<Long> taskIds, Long reviewerId) {
+        if (taskIds == null || taskIds.isEmpty() || reviewerId == null) {
+            return Set.of();
+        }
+        return commentMapper.findCommentedTaskIds(taskIds, reviewerId);
+    }
+
     /**
      * 获取用户收到的全部评价
      * @param userId 用户ID

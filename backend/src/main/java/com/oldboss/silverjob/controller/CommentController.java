@@ -39,7 +39,7 @@ public class CommentController {
     @PostMapping("/add")
     public Result<Void> add(@RequestHeader("Authorization") String authorization,
                           @Valid @RequestBody CommentRequestDTO request) {
-        log.info("提交任务评价: {}", request);
+        log.info("提交任务评价");
         commentService.addComment(authorization, request);
         return Result.success(null, "评价已提交");
     }

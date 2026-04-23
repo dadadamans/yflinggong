@@ -56,7 +56,7 @@ public class AdminStatsController {
      */
     @GetMapping("/stats")
     public Result<AdminStatsVO> stats(@RequestHeader("Authorization") String authorization) {
-        log.info("获取系统统计数计概览 {}", authorization);
+        log.info("获取系统统计数据概览");
         authService.requireAdmin(authorization);
         return Result.success(adminStatsService.getDashboardStats());
     }

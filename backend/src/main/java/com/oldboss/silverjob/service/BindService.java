@@ -18,6 +18,7 @@ import com.oldboss.silverjob.vo.CurrentOrderVO;
 import com.oldboss.silverjob.vo.UserProfileVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
@@ -33,6 +34,7 @@ public class BindService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int CODE_EXPIRE_MINUTES = 30;
+    private static final int MAX_BIND_CODE_RETRIES = 5;
 
     private final BindRelationMapper bindRelationMapper;
     private final TaskMapper taskMapper;
@@ -79,13 +81,26 @@ public class BindService {
             throw new BizException("您已绑定子女，无法重复绑定");
         }
 
-        String code = String.format("%06d", RANDOM.nextInt(900000) + 100000);
-
-        if (relation == null) {
-            bindRelationMapper.insertBindRelation(elderlyId, code);
-        } else {
-            bindRelationMapper.updateBindCode(elderlyId, code);
+        boolean created = false;
+        for (int i = 0; i < MAX_BIND_CODE_RETRIES; i++) {
+            String code = String.format("%06d", RANDOM.nextInt(900000) + 100000);
+            try {
+                if (relation == null) {
+                    bindRelationMapper.insertBindRelation(elderlyId, code);
+                } else {
+                    bindRelationMapper.updateBindCode(elderlyId, code);
+                }
+                created = true;
+                break;
+            } catch (DataIntegrityViolationException ignored) {
+                // Bind code is unique. Retry with a new code instead of surfacing a 500.
+            }
         }
+
+        if (!created) {
+            throw new BizException("绑定码生成失败，请稍后重试");
+        }
+
         return toBindStatusVO(bindInfoResult(elderlyId, "elderly"));
     }
 
@@ -135,9 +150,13 @@ public class BindService {
             }
         }
 
-        int updated = bindRelationMapper.confirmBind(childId, code);
-        if (updated == 0) {
-            throw new BizException("绑定失败，请重试");
+        try {
+            int updated = bindRelationMapper.confirmBind(childId, code);
+            if (updated == 0) {
+                throw new BizException("绑定失败，请重试");
+            }
+        } catch (DataIntegrityViolationException ex) {
+            throw new BizException("您已绑定其他老人，无法重复绑定");
         }
     }
 
@@ -451,11 +470,7 @@ public class BindService {
      * @return 当前进行中的订单，没有则返回 null
      */
     private Map<String, Object> findCurrentWorkingOrderByElderlyId(Long elderlyId) {
-        List<Map<String, Object>> orders = taskMapper.selectOrdersByElderlyId(elderlyId);
-        return orders.stream()
-                .filter(o -> TaskStatus.WORKING.equals(o.get("status")))
-                .findFirst()
-                .orElse(null);
+        return taskMapper.selectCurrentWorkingOrderByElderlyId(elderlyId);
     }
 
     private static final double PLATFORM_FEE_SKILL = 0.10;

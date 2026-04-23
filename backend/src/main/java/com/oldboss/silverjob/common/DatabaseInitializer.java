@@ -57,7 +57,34 @@ public class DatabaseInitializer {
         } catch (Exception ignored) {}
 
         try {
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_comment_task_reviewer ON comment(task_id, reviewer_id)");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_bind_relation_child_confirmed ON bind_relation(child_user_id) WHERE confirmed = true AND child_user_id IS NOT NULL");
+        } catch (Exception ignored) {}
+
+        try {
             jdbcTemplate.execute("UPDATE task SET settle_text = '已结算' WHERE settle_text = '模拟已支付'");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS feedback (" +
+                    "id BIGSERIAL PRIMARY KEY," +
+                    "user_id BIGINT NOT NULL," +
+                    "role VARCHAR(20) NOT NULL," +
+                    "content TEXT NOT NULL," +
+                    "related_order_id BIGINT," +
+                    "status VARCHAR(20) DEFAULT 'pending'," +
+                    "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id)");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status)");
         } catch (Exception ignored) {}
     }
 }

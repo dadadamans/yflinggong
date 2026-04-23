@@ -46,6 +46,14 @@ public interface BindRelationMapper extends BaseMapper<BindRelation> {
     @Select("select * from bind_relation where child_user_id = #{childUserId} order by id asc limit 1")
     Map<String, Object> selectByChildId(@Param("childUserId") Long childUserId);
 
+    /**
+     * 根据ID查询绑定关系。
+     * @param id 绑定关系ID
+     * @return 绑定关系记录
+     */
+    @Select("select * from bind_relation where id = #{id}")
+    Map<String, Object> selectById(@Param("id") Long id);
+
     @Select("select b.*, " +
             "e.nickname as elderly_nickname, e.real_name as elderly_real_name, e.mobile as elderly_mobile, " +
             "c.nickname as child_nickname, c.real_name as child_real_name, c.mobile as child_mobile, c.relation " +

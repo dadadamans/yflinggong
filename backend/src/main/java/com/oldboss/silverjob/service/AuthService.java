@@ -257,6 +257,34 @@ public class AuthService {
     }
 
     /**
+     * 通过 token 获取用户信息（用于 WebSocket 连接认证）
+     * @param token JWT token
+     * @return 当前用户信息或 null
+     */
+    public CurrentUser getCurrentUserByToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> user = userSessionMapper.selectUserByToken(token);
+            if (user == null) {
+                return null;
+            }
+            Boolean enabled = (Boolean) user.get("enabled");
+            if (enabled != null && !enabled) {
+                return null;
+            }
+            String roleType = str(user.get("role_type"));
+            Long userId = ((Number) user.get("id")).longValue();
+            Map<String, Object> profileWithId = new LinkedHashMap<>(toProfile(user));
+            profileWithId.put("id", userId);
+            return new CurrentUser(token, roleType, profileWithId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 将数据库用户记录转换为统一的前端资料结构。
      * @param user 数据库用户记录
      * @return 用户资料 Map

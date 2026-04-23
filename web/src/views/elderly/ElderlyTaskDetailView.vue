@@ -92,7 +92,7 @@ function speakTitle() {
   if (!task.value) return;
   const t = task.value;
   const type = t.taskType || t.task_type || t.type || "通用任务";
-  const salary = t.salary || t.displaySalary || "面议";
+  const salary = t.displaySalary || t.salary || "面议";
   const startTime = taskStartTime.value === "-" ? "待定" : taskStartTime.value;
   const endTime = taskEndTime.value === "-" ? "待定" : taskEndTime.value;
   speak(`任务：${t.title || "暂无"}，任务类型${type}，地址在${t.address || "暂无"}，工资${salary}元，时间${startTime}到${endTime}`);

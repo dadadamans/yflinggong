@@ -6,6 +6,7 @@ import com.oldboss.silverjob.mapper.MessageMapper;
 import com.oldboss.silverjob.model.CurrentUser;
 import com.oldboss.silverjob.dto.MessageSendRequestDTO;
 import com.oldboss.silverjob.vo.MessageItemVO;
+import com.oldboss.silverjob.websocket.NativeWebSocketHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +30,20 @@ public class MessageService {
     private final MessageMapper messageMapper;
     private final BindRelationMapper bindRelationMapper;
     private final AuthService authService;
+    private final NativeWebSocketHandler webSocketHandler;
 
     /**
      * 构造留言服务并注入所需依赖。
      * @param messageMapper 留言数据访问对象
      * @param bindRelationMapper 绑定关系数据访问对象
      * @param authService 认证服务
+     * @param webSocketHandler WebSocket 处理器
      */
-    public MessageService(MessageMapper messageMapper, BindRelationMapper bindRelationMapper, AuthService authService) {
+    public MessageService(MessageMapper messageMapper, BindRelationMapper bindRelationMapper, AuthService authService, NativeWebSocketHandler webSocketHandler) {
         this.messageMapper = messageMapper;
         this.bindRelationMapper = bindRelationMapper;
         this.authService = authService;
+        this.webSocketHandler = webSocketHandler;
     }
 
     /**
@@ -107,6 +111,20 @@ public class MessageService {
         Long bindRelationId = ((Number) relation.get("id")).longValue();
         long userId = currentUser.getUserId();
         messageMapper.insertMessage(bindRelationId, userId, role, content);
+
+        String recipientRole = "elderly".equals(role) ? "child" : "elderly";
+        Long recipientUserId = getRecipientUserId(bindRelationId, recipientRole);
+        log.info("SendMessage: sender={}, recipientRole={}, recipientUserId={}", userId, recipientRole, recipientUserId);
+        if (recipientUserId != null) {
+            Map<String, Object> pushMessage = new LinkedHashMap<>();
+            pushMessage.put("type", "new_message");
+            pushMessage.put("bindRelationId", bindRelationId);
+            log.info("SendMessage: calling sendMessageToUser");
+            webSocketHandler.sendMessageToUser(recipientUserId, "/queue/message", pushMessage);
+            log.info("SendMessage: push completed");
+        } else {
+            log.info("SendMessage: no recipient found");
+        }
     }
 
     /**
@@ -223,5 +241,31 @@ public class MessageService {
      */
     private String strOrNull(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    /**
+     * 根据绑定关系ID和接收方角色获取接收方用户ID。
+     * @param bindRelationId 绑定关系ID
+     * @param recipientRole 接收方角色（elderly 或 child）
+     * @return 接收方用户ID 或 null
+     */
+    private Long getRecipientUserId(Long bindRelationId, String recipientRole) {
+        try {
+            Map<String, Object> relation = bindRelationMapper.selectById(bindRelationId);
+            if (relation == null || !Boolean.TRUE.equals(relation.get("confirmed"))) {
+                return null;
+            }
+            if ("elderly".equals(recipientRole)) {
+                Object elderlyId = relation.get("elderly_user_id");
+                return elderlyId instanceof Number n ? n.longValue() : null;
+            } else if ("child".equals(recipientRole)) {
+                Object childId = relation.get("child_user_id");
+                return childId instanceof Number n ? n.longValue() : null;
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("Failed to get recipient user id: {}", e.getMessage());
+            return null;
+        }
     }
 }

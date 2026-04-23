@@ -174,6 +174,12 @@ public interface TaskMapper extends BaseMapper<Task> {
                                                                    @Param("offset") int offset,
                                                                    @Param("limit") int limit);
 
+    @Select("select t.*, p.mobile as publisher_mobile " +
+            "from task t left join app_user p on t.publisher_id = p.id " +
+            "where t.elderly_id = #{elderlyId} and t.status = '" + TaskStatus.WORKING + "' " +
+            "order by t.id desc limit 1")
+    Map<String, Object> selectCurrentWorkingOrderByElderlyId(@Param("elderlyId") Long elderlyId);
+
     @Select("select count(*) from task where elderly_id = #{elderlyId} and status = #{status}")
     long countOrdersByElderlyIdAndStatus(@Param("elderlyId") Long elderlyId, @Param("status") String status);
 

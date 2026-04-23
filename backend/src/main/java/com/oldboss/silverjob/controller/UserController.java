@@ -50,7 +50,7 @@ public class UserController {
                           @RequestParam(value = "roleType", required = false) String roleType,
                           @RequestParam(value = "enabled", required = false) Boolean enabled,
                           @RequestParam(value = "healthStatus", required = false) String healthStatus) {
-        log.info("获取所有用户列表: {}", authorization);
+        log.info("获取所有用户列表");
         if (page == null && pageSize == null && roleType == null && enabled == null && healthStatus == null) {
             return Result.success(userService.listAllUsers(authorization));
         }
@@ -64,7 +64,7 @@ public class UserController {
      */
     @GetMapping("/info")
     public Result<UserInfoVO> info(@RequestHeader("Authorization") String authorization) {
-        log.info("获取当前登录用户的资料: {}" , authorization);
+        log.info("获取当前登录用户的资料");
         return Result.success(userService.userInfo(authorization));
     }
 
@@ -77,7 +77,7 @@ public class UserController {
     @PostMapping("/save")
     public Result<Void> save(@RequestHeader("Authorization") String authorization,
                                               @Valid @RequestBody UserSaveRequestDTO payload) {
-        log.info("保存当前登录用户的资料: {}", authorization);
+        log.info("保存当前登录用户的资料");
         userService.saveUserInfo(authorization, payload);
         return Result.success(null, "资料已保存");
     }
@@ -91,7 +91,7 @@ public class UserController {
     @PostMapping("/setEnabled")
     public Result<Void> setEnabled(@RequestHeader("Authorization") String authorization,
                                                    @Valid @RequestBody IdRequestDTO request) {
-        log.info("启用或禁用用户账号: {}", authorization);
+        log.info("启用或禁用用户账号");
         boolean enabled = request.getEnabled() != null && request.getEnabled();
         userService.setUserEnabled(authorization, request.getUserId(), enabled);
         return Result.success(null, enabled ? "已启用" : "已禁用");
@@ -106,7 +106,7 @@ public class UserController {
     @PostMapping("/setElderlyFontSize")
     public Result<Void> setElderlyFontSize(@RequestHeader("Authorization") String authorization,
                                            @Valid @RequestBody ElderlyFontSizeRequestDTO payload) {
-        log.info("设置老人字体大小：{}" , authorization);
+        log.info("设置老人字体大小");
         userService.setElderlyFontSize(authorization, payload.getElderlyId(), payload.getFontSize());
         return Result.success(null, "字体大小已更新");
     }

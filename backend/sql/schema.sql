@@ -129,7 +129,12 @@ CREATE TABLE IF NOT EXISTS comment (
 CREATE INDEX IF NOT EXISTS idx_comment_reviewee_id ON comment(reviewee_id);
 CREATE INDEX IF NOT EXISTS idx_comment_task_id ON comment(task_id);
 CREATE INDEX IF NOT EXISTS idx_comment_reviewer_id ON comment(reviewer_id);
+CREATE INDEX IF NOT EXISTS idx_comment_task_reviewer ON comment(task_id, reviewer_id);
 
 -- 绑定关系1对1约束（同一个老人只能绑定一个子女）
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bind_relation_elderly_confirmed 
 ON bind_relation(elderly_user_id) WHERE confirmed = true;
+
+-- 子女侧也保持1对1约束（同一个子女只能绑定一个老人）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bind_relation_child_confirmed
+ON bind_relation(child_user_id) WHERE confirmed = true AND child_user_id IS NOT NULL;

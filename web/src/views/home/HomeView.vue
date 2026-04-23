@@ -36,7 +36,7 @@
                 <span>{{ item.address }}</span>
                 <span>开始: {{ getStartTime(item) }}</span>
                 <span>结束: {{ getEndTime(item) }}</span>
-                <span>¥{{ item.salary }}</span>
+                <span>¥{{ item.displaySalary || item.salary }}</span>
               </div>
             </div>
             <StatusTag :status="item.status" />

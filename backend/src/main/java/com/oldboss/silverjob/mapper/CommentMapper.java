@@ -10,8 +10,11 @@ import org.springframework.stereotype.Component;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.StringJoiner;
 
 /**
  * 评价 Mapper
@@ -159,6 +162,30 @@ public class CommentMapper {
         String sql = "SELECT COUNT(*) FROM comment WHERE task_id = ? AND reviewer_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, taskId, reviewerId);
         return count != null && count > 0;
+    }
+
+    /**
+     * 批量查询某个用户在一组任务中已评价过的任务ID。
+     * @param taskIds 任务ID集合
+     * @param reviewerId 评价人ID
+     * @return 已评价任务ID集合
+     */
+    public Set<Long> findCommentedTaskIds(Set<Long> taskIds, Long reviewerId) {
+        if (taskIds == null || taskIds.isEmpty() || reviewerId == null) {
+            return Set.of();
+        }
+
+        List<Long> orderedTaskIds = new ArrayList<>(taskIds);
+        StringJoiner placeholders = new StringJoiner(", ");
+        orderedTaskIds.forEach(id -> placeholders.add("?"));
+
+        String sql = "SELECT DISTINCT task_id FROM comment WHERE reviewer_id = ? AND task_id IN (" + placeholders + ")";
+
+        List<Object> params = new ArrayList<>();
+        params.add(reviewerId);
+        params.addAll(orderedTaskIds);
+
+        return new LinkedHashSet<>(jdbcTemplate.queryForList(sql, Long.class, params.toArray()));
     }
 
     /**

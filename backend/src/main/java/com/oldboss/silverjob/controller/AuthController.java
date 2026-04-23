@@ -43,7 +43,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public Result<LoginVO> register(@Valid @RequestBody RegisterRequestDTO request) {
-        log.info("用户注册：{}" , request);
+        log.info("用户注册");
         return Result.success(authService.register(request), "注册成功");
     }
 
@@ -65,7 +65,7 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        log.info("用户退出登录：{}" , authorization);
+        log.info("用户退出登录");
         authService.logout(authorization);
         return Result.success(null, "退出成功");
     }
@@ -77,7 +77,7 @@ public class AuthController {
      */
     @GetMapping("/currentUser")
     public Result<CurrentUserVO> currentUser(@RequestHeader("Authorization") String authorization) {
-        log.info("获取当前登录用户信息:{}" ,  authorization);
+        log.info("获取当前登录用户信息");
         return Result.success(authService.currentUser(authorization));
     }
 }

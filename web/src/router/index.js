@@ -22,6 +22,7 @@ const AdminUsersView = () => import("../views/admin/AdminUsersView.vue");
 const AdminTasksView = () => import("../views/admin/AdminTasksView.vue");
 const AdminOrdersView = () => import("../views/admin/AdminOrdersView.vue");
 const AdminBindsView = () => import("../views/admin/AdminBindsView.vue");
+const AdminFeedbackView = () => import("../views/admin/AdminFeedbackView.vue");
 
 const routes = [
   {
@@ -66,7 +67,8 @@ const routes = [
       { path: "users", component: AdminUsersView, meta: { title: "用户管理", roles: ["admin"] } },
       { path: "tasks", component: AdminTasksView, meta: { title: "任务管理", roles: ["admin"] } },
       { path: "orders", component: AdminOrdersView, meta: { title: "订单管理", roles: ["admin"] } },
-      { path: "binds", component: AdminBindsView, meta: { title: "绑定关系", roles: ["admin"] } }
+      { path: "binds", component: AdminBindsView, meta: { title: "绑定关系", roles: ["admin"] } },
+      { path: "feedback", component: AdminFeedbackView, meta: { title: "反馈管理", roles: ["admin"] } }
     ]
   }
 ];

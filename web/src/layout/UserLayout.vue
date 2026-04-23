@@ -14,7 +14,7 @@
       <header class="topbar panel">
         <div>
           <h2 class="section-title">{{ route.meta.title || "页面" }}</h2>
-          <div class="muted">当前身份：{{ userStore.role }}{{ userStore.profile?.nickname ? ` / ${userStore.profile.nickname}` : "" }}</div>
+          <div class="muted">当前身份：{{ userStore.roleLabel }}{{ userStore.profile?.nickname ? ` / ${userStore.profile.nickname}` : "" }}</div>
         </div>
         <div class="button-row">
           <button class="btn-ghost" type="button" @click="router.push('/home')">返回首页</button>

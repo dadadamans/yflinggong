@@ -41,7 +41,7 @@ public class MessageController {
      */
     @GetMapping("/list")
     public Result<List<MessageItemVO>> list(@RequestHeader("Authorization") String authorization) {
-        log.info("获取留言列表：{}" , authorization);
+        log.info("获取留言列表");
         return Result.success(messageService.messageList(authorization));
     }
 
@@ -54,7 +54,7 @@ public class MessageController {
     @PostMapping("/send")
     public Result<Void> send(@RequestHeader("Authorization") String authorization,
                                              @Valid @RequestBody MessageSendRequestDTO request) {
-        log.info("发送留言:{}" , authorization);
+        log.info("发送留言");
         messageService.sendMessage(authorization, request);
         return Result.success(null, "留言已发送");
     }

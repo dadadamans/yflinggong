@@ -4,8 +4,8 @@
     <p v-if="errorText" class="error-text">{{ errorText }}</p>
     <p v-if="successText">{{ successText }}</p>
     <div class="form-grid">
-      <div class="field"><label>任务标题</label><input v-model="form.title" /></div>
-      <div class="field"><label>服务地址</label><input v-model="form.address" /></div>
+      <div class="field"><label>任务标题</label><input v-model="form.title" placeholder="请输入任务标题" /></div>
+      <div class="field"><label>服务地址</label><input v-model="form.address" placeholder="请输入服务地址" /></div>
       <div class="field field-half">
         <label>任务类型</label>
         <select v-model="form.category" @change="form.type = ''">
@@ -32,8 +32,8 @@
           <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
         </select>
       </div>
-      <div class="field field-full"><label>报酬金额</label><input v-model="form.salary" type="number" /></div>
-      <div class="field field-full"><label>任务内容</label><textarea v-model="form.content" /></div>
+      <div class="field field-full"><label>报酬金额</label><input v-model="form.salary" type="number" placeholder="请输入报酬金额" /></div>
+      <div class="field field-full"><label>任务内容</label><textarea v-model="form.content" placeholder="请输入任务内容" /></div>
     </div>
     <div class="button-row" style="margin-top: 18px">
       <button class="btn" type="button" :disabled="saving" @click="submit">{{ saving ? "发布中..." : "发布任务" }}</button>
@@ -64,21 +64,16 @@ const timeSlots = [
   "20:00-22:00"
 ];
 
-const defaultForm = () => {
-  const today = new Date();
-  const d = new Date(today);
-  const defaultDate = d.toISOString().split("T")[0];
-  return {
-    title: "陪老人去医院复查",
-    category: "skill",
-    type: "escort",
-    address: "红谷滩区梅岭大道 1999号",
-    salary: 150,
-    taskDate: defaultDate,
-    taskTimeSlot: "14:00-16:00",
-    timeText: ""
-  };
-};
+const defaultForm = () => ({
+  title: "",
+  category: "",
+  type: "",
+  address: "",
+  salary: "",
+  taskDate: "",
+  taskTimeSlot: "",
+  timeText: ""
+});
 
 const form = reactive(defaultForm());
 

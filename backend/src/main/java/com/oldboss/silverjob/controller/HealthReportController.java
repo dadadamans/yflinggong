@@ -7,6 +7,7 @@ import com.oldboss.silverjob.model.CurrentUser;
 import com.oldboss.silverjob.service.AuthService;
 import com.oldboss.silverjob.service.UserService;
 import com.oldboss.silverjob.vo.HealthReportVO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -66,7 +67,7 @@ public class HealthReportController {
     @PostMapping("/upload")
     public Result<Void> upload(@RequestHeader("Authorization") String authorization,
                                                 @RequestParam("file") MultipartFile file) {
-        log.info("上传体检报告：{}" , authorization);
+        log.info("上传体检报告");
         CurrentUser currentUser = authService.requireUser(authorization);
         if (!"elderly".equals(currentUser.getRoleType())) {
             log.info("只有老人才能上传体检报告");
@@ -129,8 +130,8 @@ public class HealthReportController {
      */
     @PostMapping("/review")
     public Result<Void> review(@RequestHeader("Authorization") String authorization,
-                                                @RequestBody IdRequestDTO request) {
-        log.info("审核体检报告:{}" , authorization);
+                                                @Valid @RequestBody IdRequestDTO request) {
+        log.info("审核体检报告");
         Long userId = request.getUserId();
         Boolean approved = request.getEnabled();
         String healthCondition = request.getHealthCondition();
@@ -145,7 +146,7 @@ public class HealthReportController {
      */
     @GetMapping("/status")
     public Result<HealthReportVO> status(@RequestHeader("Authorization") String authorization) {
-        log.info("获取体检报告状态:{}" , authorization);
+        log.info("获取体检报告状态");
         return Result.success(userService.getHealthReportStatus(authorization));
     }
 }

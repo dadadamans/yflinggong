@@ -69,6 +69,9 @@
           <button v-if="item.status === 'pending_payment'" class="btn" type="button" :disabled="actionLoading" @click="showPayDialog(item)">
             模拟支付
           </button>
+          <button class="btn btn-warning" type="button" @click="openFeedbackDialog(item)">
+            反馈
+          </button>
         </div>
       </article>
     </div>
@@ -100,12 +103,44 @@
       </div>
     </div>
 
+    <div v-if="showFeedbackDialog" class="modal-mask" @click="showFeedbackDialog = false">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>提交反馈</h3>
+          <button class="modal-close" @click="showFeedbackDialog = false">×</button>
+        </div>
+        <p v-if="feedbackError" class="error-text">{{ feedbackError }}</p>
+        <div v-if="feedbackSuccessText" class="success-text">{{ feedbackSuccessText }}</div>
+        <div class="field">
+          <label>问题类型</label>
+          <select v-model="feedbackForm.feedbackType" class="select-input">
+            <option value="">请选择</option>
+            <option value="payment_issue">支付问题</option>
+            <option value="task_exception">任务异常</option>
+            <option value="elderly_issue">老人问题</option>
+            <option value="other">其他问题</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>反馈内容</label>
+          <textarea v-model="feedbackForm.content" placeholder="请详细描述您的问题..."></textarea>
+        </div>
+        <div class="button-row">
+          <button class="btn btn-primary" style="flex: 1" :disabled="submittingFeedback" @click="submitFeedback">
+            {{ submittingFeedback ? '提交中...' : '提交反馈' }}
+          </button>
+          <button class="btn btn-danger" style="flex: 1" @click="showFeedbackDialog = false">取消</button>
+        </div>
+      </div>
+    </div>
+
     </section>
 </template>
 
 <script setup>
 import { onMounted, ref, watch } from "vue";
 import { getBindOrderList } from "../../api/bind";
+import { submitFeedback as submitFeedbackApi } from "../../api/feedback";
 import { payOrder as payOrderApi } from "../../api/order";
 import AppPagination from "../../components/AppPagination.vue";
 import StatusTag from "../../components/StatusTag.vue";
@@ -123,6 +158,17 @@ const pageSize = ref(10);
 const showDialog = ref(false);
 const payItem = ref(null);
 const paying = ref(false);
+
+const showFeedbackDialog = ref(false);
+const submittingFeedback = ref(false);
+const feedbackError = ref("");
+const feedbackSuccessText = ref("");
+const feedbackItem = ref(null);
+const feedbackForm = ref({
+  feedbackType: "",
+  content: "",
+  relatedOrderId: null
+});
 
 function handlePageChange(page) {
   currentPage.value = page;
@@ -172,6 +218,45 @@ async function payOrder() {
     errorText.value = error.message || "支付失败";
   } finally {
     paying.value = false;
+  }
+}
+
+function openFeedbackDialog(item) {
+  feedbackError.value = "";
+  feedbackSuccessText.value = "";
+  feedbackItem.value = item;
+  feedbackForm.value = {
+    feedbackType: "",
+    content: "",
+    relatedOrderId: item.id
+  };
+  showFeedbackDialog.value = true;
+}
+
+async function submitFeedback() {
+  if (!feedbackForm.value.content.trim()) {
+    feedbackError.value = "请输入反馈内容";
+    return;
+  }
+
+  submittingFeedback.value = true;
+  feedbackError.value = "";
+  feedbackSuccessText.value = "";
+  try {
+    await submitFeedbackApi({
+      content: feedbackForm.value.content,
+      feedbackType: feedbackForm.value.feedbackType,
+      relatedOrderId: feedbackForm.value.relatedOrderId
+    });
+    feedbackSuccessText.value = "反馈已提交，管理员会尽快处理";
+    setTimeout(() => {
+      showFeedbackDialog.value = false;
+      feedbackSuccessText.value = "";
+    }, 1500);
+  } catch (error) {
+    feedbackError.value = error.message || "反馈提交失败";
+  } finally {
+    submittingFeedback.value = false;
   }
 }
 
@@ -290,5 +375,32 @@ watch(filterStatus, () => {
 .filter-tab.active .tab-count {
   background: #4a90d9;
   color: #fff;
+}
+.btn-warning {
+  background: #ff9800;
+  color: #fff;
+}
+.btn-warning:hover {
+  background: #f57c00;
+}
+.btn-primary {
+  background: #1976d2;
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #1565c0;
+}
+.success-text {
+  color: #4caf50;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.select-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
 }
 </style>

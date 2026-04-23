@@ -14,6 +14,7 @@
       <header class="topbar panel">
         <div>
           <h2 class="section-title">{{ route.meta.title || "后台页面" }}</h2>
+          <div class="muted">当前身份：{{ userStore.roleLabel }}{{ userStore.profile?.nickname ? ` / ${userStore.profile.nickname}` : "" }}</div>
         </div>
         <button class="btn-danger" type="button" @click="handleLogout">退出登录</button>
       </header>
@@ -35,7 +36,8 @@ const navItems = [
   { label: "用户管理", to: "/admin/users" },
   { label: "任务管理", to: "/admin/tasks" },
   { label: "订单管理", to: "/admin/orders" },
-  { label: "绑定关系", to: "/admin/binds" }
+  { label: "绑定关系", to: "/admin/binds" },
+  { label: "反馈管理", to: "/admin/feedback" }
 ];
 
 async function handleLogout() {

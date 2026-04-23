@@ -2,19 +2,53 @@ import { computed, ref, watch } from "vue";
 import { defineStore } from "pinia";
 import { clearSession, getRole, getToken, getUser, setRole, setToken, setUser } from "../utils/storage";
 import { getCurrentUser, loginApi, logoutApi } from "../api/auth";
+import { connect as wsConnect, disconnect as wsDisconnect } from "../utils/websocket";
+
+const roleLabelMap = {
+  elderly: "老人",
+  employer: "雇主",
+  child: "子女",
+  admin: "管理员"
+};
 
 export const useUserStore = defineStore("user", () => {
   const token = ref(getToken());
   const role = ref(getRole() || "elderly");
   const profile = ref(getUser());
   const fontSize = ref(profile.value?.fontSize || "");
+  const onMessageCallback = ref(null);
+  const onNotificationCallback = ref(null);
 
-  // Update fontSize when profile changes
+  function registerMessageCallback(onMessage, onNotification) {
+    onMessageCallback.value = onMessage;
+    onNotificationCallback.value = onNotification;
+  }
+
+  function initWebSocket() {
+    if (!token.value) {
+      return;
+    }
+    wsConnect(
+      (data) => {
+        console.log("Store 接收到消息分发中:", data);
+        if (onMessageCallback.value) {
+          onMessageCallback.value(data);
+        }
+      },
+      (noti) => {
+        if (onNotificationCallback.value) {
+          onNotificationCallback.value(noti);
+        }
+      }
+    );
+  }
+
   watch(profile, (newProfile) => {
     fontSize.value = newProfile?.fontSize || "";
   });
 
   const isLoggedIn = computed(() => Boolean(token.value));
+  const roleLabel = computed(() => roleLabelMap[role.value] || "用户");
 
   function saveSession(payload = {}) {
     token.value = payload.token || "";
@@ -60,10 +94,13 @@ export const useUserStore = defineStore("user", () => {
     try {
       await logoutApi();
     } finally {
+      wsDisconnect();
       token.value = "";
       role.value = "elderly";
       profile.value = null;
       fontSize.value = "";
+      onMessageCallback.value = null;
+      onNotificationCallback.value = null;
       clearSession();
     }
   }
@@ -71,6 +108,7 @@ export const useUserStore = defineStore("user", () => {
   return {
     token,
     role,
+    roleLabel,
     profile,
     fontSize,
     isLoggedIn,
@@ -78,6 +116,8 @@ export const useUserStore = defineStore("user", () => {
     setFontSize,
     login,
     fetchCurrentUser,
-    logout
+    logout,
+    registerMessageCallback,
+    initWebSocket
   };
 });

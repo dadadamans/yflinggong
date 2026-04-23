@@ -3,6 +3,8 @@ services:
     # 使用官方 Postgres 镜像，容器启动时会自动执行挂载进去的初始化脚本。
     image: postgres:15-alpine
     container_name: silver-job-db
+    ports:
+      - "127.0.0.1:5432:5432"
     env_file:
       - ./backend/.env
     volumes:
