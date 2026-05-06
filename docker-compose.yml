@@ -7,13 +7,12 @@ services:
       - "127.0.0.1:5432:5432"
     env_file:
       - ./backend/.env
+    environment:
+      - TZ=Asia/Shanghai
     volumes:
-      # 持久化数据库数据，避免容器删除后数据丢失。
       - ./postgres_data:/var/lib/postgresql/data
-      # 首次初始化数据库结构和默认数据。
-      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
-      - ./backend/sql/docker-init/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./backend/sql/docker-init/02-admin.sh:/docker-entrypoint-initdb.d/02-admin.sh:ro
+      # 直接挂载你截图里看到的那个 schema.sql
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       # 等待数据库真正可连接后，再允许依赖它的服务启动。
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -38,6 +37,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      - TZ=Asia/Shanghai
       # 容器内通过服务名 db 访问 PostgreSQL，而不是 localhost。
       - DB_URL=jdbc:postgresql://db:5432/${DB_NAME:-oldboss}
       # 将上传目录固定到容器内路径，再映射到宿主机目录。

@@ -9,6 +9,9 @@ const ElderlyTasksView = () => import("../views/elderly/ElderlyTasksView.vue");
 const ElderlyTaskDetailView = () => import("../views/elderly/ElderlyTaskDetailView.vue");
 const ElderlyOrdersView = () => import("../views/elderly/ElderlyOrdersView.vue");
 const ElderlyProfileView = () => import("../views/elderly/ElderlyProfileView.vue");
+const ElderlyFeedbackView = () => import("../views/common/FeedbackView.vue");
+const EmployerFeedbackView = () => import("../views/common/FeedbackView.vue");
+const ChildFeedbackView = () => import("../views/common/FeedbackView.vue");
 const BindView = () => import("../views/child/BindView.vue");
 const EmployerPublishView = () => import("../views/employer/EmployerPublishView.vue");
 const EmployerTasksView = () => import("../views/employer/EmployerTasksView.vue");
@@ -45,16 +48,19 @@ const routes = [
       { path: "elderly/task/:id", component: ElderlyTaskDetailView, meta: { title: "任务详情", roles: ["elderly"] } },
       { path: "elderly/orders", component: ElderlyOrdersView, meta: { title: "我的订单", roles: ["elderly"] } },
       { path: "elderly/profile", component: ElderlyProfileView, meta: { title: "个人中心", roles: ["elderly"] } },
+      { path: "elderly/feedback", component: ElderlyFeedbackView, meta: { title: "我的反馈", roles: ["elderly"] } },
       { path: "elderly/bind", component: BindView, meta: { title: "子女绑定", roles: ["elderly"] } },
       { path: "employer/publish", component: EmployerPublishView, meta: { title: "发布任务", roles: ["employer", "child"] } },
       { path: "employer/tasks", component: EmployerTasksView, meta: { title: "任务管理", roles: ["employer", "child"] } },
+      { path: "employer/feedback", component: EmployerFeedbackView, meta: { title: "我的反馈", roles: ["employer", "child"] } },
       { path: "employer/profile", component: EmployerProfileView, meta: { title: "个人中心", roles: ["employer"] } },
       { path: "child/bind", component: BindView, meta: { title: "绑定老人", roles: ["child"] } },
       { path: "child/publish", component: EmployerPublishView, meta: { title: "发布任务", roles: ["child"] } },
       { path: "child/tasks", component: EmployerTasksView, meta: { title: "任务管理", roles: ["child"] } },
       { path: "child/elderly", component: ChildElderlyView, meta: { title: "老人资料", roles: ["child"] } },
       { path: "child/messages", component: ChildMessagesView, meta: { title: "留言沟通", roles: ["child", "elderly"] } },
-      { path: "child/profile", component: ChildProfileView, meta: { title: "个人中心", roles: ["child"] } }
+      { path: "child/profile", component: ChildProfileView, meta: { title: "个人中心", roles: ["child"] } },
+      { path: "child/feedback", component: EmployerFeedbackView, meta: { title: "我的反馈", roles: ["child"] } }
     ]
   },
   {

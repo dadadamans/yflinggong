@@ -64,6 +64,7 @@
           <div>
             <h4 class="section-title">{{ item.title }}</h4>
             <div class="meta">
+              <span>订单号：{{ item.id }}</span>
               <span class="task-address">📍 {{ item.address }}</span>
               <span>开始: {{ getStartTime(item) }}</span>
               <span>结束: {{ getEndTime(item) }}</span>
@@ -95,9 +96,6 @@
             @click="openCommentDialog(item)"
           >
             评价老人
-          </button>
-          <button class="btn btn-warning" type="button" @click="openFeedbackDialog(item)">
-            反馈
           </button>
         </div>
       </article>
@@ -201,44 +199,12 @@
         </div>
       </div>
     </div>
-
-    <div v-if="showFeedbackDialog" class="modal-mask" @click="showFeedbackDialog = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>提交反馈</h3>
-          <button class="modal-close" @click="showFeedbackDialog = false">×</button>
-        </div>
-        <p v-if="feedbackError" class="error-text">{{ feedbackError }}</p>
-        <div v-if="feedbackSuccessText" class="success-text">{{ feedbackSuccessText }}</div>
-        <div class="field">
-          <label>问题类型</label>
-          <select v-model="feedbackForm.feedbackType" class="select-input">
-            <option value="">请选择</option>
-            <option value="elderly_not_finish">老人未完成任务</option>
-            <option value="health_issue">健康问题</option>
-            <option value="elderly_dispute">服务纠纷</option>
-            <option value="other">其他问题</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>反馈内容</label>
-          <textarea v-model="feedbackForm.content" placeholder="请详细描述您的问题..."></textarea>
-        </div>
-        <div class="button-row">
-          <button class="btn btn-primary" style="flex: 1" :disabled="submittingFeedback" @click="submitFeedback">
-            {{ submittingFeedback ? '提交中...' : '提交反馈' }}
-          </button>
-          <button class="btn btn-danger" style="flex: 1" @click="showFeedbackDialog = false">取消</button>
-        </div>
-      </div>
-    </div>
   </section>
 </template>
 
 <script setup>
 import { onMounted, ref, watch } from "vue";
 import { addComment } from "../../api/comment";
-import { submitFeedback as submitFeedbackApi } from "../../api/feedback";
 import { deleteOrder, payOrder as payOrderApi } from "../../api/order";
 import { getTaskList, approveTask as approveTaskApi, rejectTask as rejectTaskByIdApi } from "../../api/task";
 import AppPagination from "../../components/AppPagination.vue";
@@ -286,17 +252,6 @@ const approving = ref(false);
 const showConfirmDialog = ref(false);
 const confirmItemId = ref(null);
 const confirmAction = ref("");
-
-const showFeedbackDialog = ref(false);
-const submittingFeedback = ref(false);
-const feedbackError = ref("");
-const feedbackSuccessText = ref("");
-const feedbackItem = ref(null);
-const feedbackForm = ref({
-  feedbackType: "",
-  content: "",
-  relatedOrderId: null
-});
 
 function healthConditionText(condition) {
   const map = { healthy: "健康", fair: "一般" };
@@ -458,45 +413,6 @@ async function confirmActionHandler() {
     } finally {
       actionLoading.value = false;
     }
-  }
-}
-
-function openFeedbackDialog(item) {
-  feedbackError.value = "";
-  feedbackSuccessText.value = "";
-  feedbackItem.value = item;
-  feedbackForm.value = {
-    feedbackType: "",
-    content: "",
-    relatedOrderId: item.id
-  };
-  showFeedbackDialog.value = true;
-}
-
-async function submitFeedback() {
-  if (!feedbackForm.value.content.trim()) {
-    feedbackError.value = "请输入反馈内容";
-    return;
-  }
-
-  submittingFeedback.value = true;
-  feedbackError.value = "";
-  feedbackSuccessText.value = "";
-  try {
-    await submitFeedbackApi({
-      content: feedbackForm.value.content,
-      feedbackType: feedbackForm.value.feedbackType,
-      relatedOrderId: feedbackForm.value.relatedOrderId
-    });
-    feedbackSuccessText.value = "反馈已提交，管理员会尽快处理";
-    setTimeout(() => {
-      showFeedbackDialog.value = false;
-      feedbackSuccessText.value = "";
-    }, 1500);
-  } catch (error) {
-    feedbackError.value = error.message || "反馈提交失败";
-  } finally {
-    submittingFeedback.value = false;
   }
 }
 

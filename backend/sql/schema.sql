@@ -135,6 +135,24 @@ CREATE INDEX IF NOT EXISTS idx_comment_task_reviewer ON comment(task_id, reviewe
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bind_relation_elderly_confirmed 
 ON bind_relation(elderly_user_id) WHERE confirmed = true;
 
+-- 反馈表
+CREATE TABLE IF NOT EXISTS feedback (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES app_user(id),
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    feedback_type VARCHAR(50),
+    related_order_id BIGINT,
+    status VARCHAR(20) DEFAULT 'pending',
+    admin_reply TEXT,
+    handled_by BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
+
 -- 子女侧也保持1对1约束（同一个子女只能绑定一个老人）
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bind_relation_child_confirmed
 ON bind_relation(child_user_id) WHERE confirmed = true AND child_user_id IS NOT NULL;

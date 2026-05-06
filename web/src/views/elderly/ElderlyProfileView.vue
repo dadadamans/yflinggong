@@ -78,7 +78,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { getUserInfo, saveUserInfo, getHealthReportStatus, uploadHealthReport } from "../../api/user";
+import { getUserInfo, saveUserInfo, getHealthReportStatus, uploadHealthReport, setElderlyFontSize } from "../../api/user";
 import { useUserStore } from "../../stores/user";
 
 const userStore = useUserStore();
@@ -121,6 +121,7 @@ const uploadButtonText = computed(() => {
 });
 
 const form = reactive({
+  id: "",
   nickname: "",
   realName: "",
   mobile: "",
@@ -145,6 +146,10 @@ async function loadData() {
     Object.assign(form, profileData);
     if (!Array.isArray(form.skillTags)) {
       form.skillTags = form.skillTags ? form.skillTags.split(",").map(t => t.trim()).filter(t => t) : [];
+    }
+
+    if (form.fontSize) {
+      userStore.setFontSize(form.fontSize);
     }
 
     ratingStats.avgRating = profileData.avgRating || 0;
@@ -203,8 +208,11 @@ async function save() {
   try {
     const data = { ...form, skillTags: form.skillTags.join(",") };
     const res = await saveUserInfo(data);
-    successText.value = res.message || "资料已保存";
     userStore.setFontSize(form.fontSize);
+    if (userStore.role === 'child') {
+      await setElderlyFontSize(form.id, form.fontSize);
+    }
+    successText.value = res.message || "资料已保存";
   } catch (error) {
     errorText.value = error.message || "保存失败";
   } finally {

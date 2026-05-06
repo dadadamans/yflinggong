@@ -12,6 +12,6 @@ export function getAdminFeedbackList(params) {
   return request.get("/api/feedback/admin", { params });
 }
 
-export function updateFeedbackStatus(id, status) {
-  return request.put(`/api/feedback/${id}`, { status });
+export function updateFeedbackStatus(id, data) {
+  return request.put(`/api/feedback/${id}`, data);
 }

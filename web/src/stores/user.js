@@ -11,11 +11,19 @@ const roleLabelMap = {
   admin: "管理员"
 };
 
+function getStoredFontSize() {
+  try {
+    return localStorage.getItem("fontSize") || "";
+  } catch {
+    return "";
+  }
+}
+
 export const useUserStore = defineStore("user", () => {
   const token = ref(getToken());
   const role = ref(getRole() || "elderly");
   const profile = ref(getUser());
-  const fontSize = ref(profile.value?.fontSize || "");
+  const fontSize = ref(getStoredFontSize() || profile.value?.fontSize || "");
   const onMessageCallback = ref(null);
   const onNotificationCallback = ref(null);
 
@@ -69,9 +77,12 @@ export const useUserStore = defineStore("user", () => {
     fontSize.value = "";
   }
 
-  function setFontSize(size) {
-    fontSize.value = size;
-  }
+function setFontSize(size) {
+  fontSize.value = size;
+  try {
+    localStorage.setItem("fontSize", size);
+  } catch {}
+}
 
   async function login(form) {
     const res = await loginApi(form);

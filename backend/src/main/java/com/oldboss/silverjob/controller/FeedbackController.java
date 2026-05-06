@@ -43,11 +43,13 @@ public class FeedbackController {
     }
 
     @PutMapping("/{id}")
-    public Result<Void> updateStatus(@PathVariable("id") Long id,
-                                     @RequestBody Map<String, String> body) {
-        log.info("更新反馈状态: {}", id);
+    public Result<Void> handle(@RequestHeader("Authorization") String authorization,
+                               @PathVariable("id") Long id,
+                               @RequestBody Map<String, String> body) {
+        log.info("管理员处理反馈: {}", id);
         String status = body.get("status");
-        feedbackService.updateFeedbackStatus(id, status);
-        return Result.success(null, "状态已更新");
+        String reply = body.get("reply");
+        feedbackService.handleFeedback(authorization, id, status, reply);
+        return Result.success(null, "已成功回复反馈");
     }
 }

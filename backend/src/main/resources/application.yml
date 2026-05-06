@@ -33,6 +33,14 @@ app:
     session-expire-hours: 24
   upload:
     health-report-dir: ${HEALTH_REPORT_UPLOAD_DIR:${user.dir}/uploads/healthReports/}
+  admin:
+    # 强制从环境变量读取，不设置默认值，保证安全性
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
+    # 辅助信息可以保留非敏感默认值
+    nickname: ${ADMIN_NICKNAME:系统管理员}
+    real-name: ${ADMIN_REAL_NAME:管理员}
+    mobile: ${ADMIN_MOBILE:13600000000}
 
 mybatis-plus:
   configuration:

@@ -41,53 +41,62 @@ public class FeedbackService {
         feedback.setUserId(currentUser.getUserId());
         feedback.setRole(currentUser.getRoleType());
         feedback.setContent(request.getContent().trim());
+        feedback.setFeedbackType(request.getFeedbackType() != null ? request.getFeedbackType() : "other");
         feedback.setRelatedOrderId(request.getRelatedOrderId());
         feedback.setStatus("pending");
         feedback.setCreatedAt(LocalDateTime.now());
 
-        feedbackMapper.insertFeedback(feedback);
+        feedbackMapper.insert(feedback);
     }
 
     public List<FeedbackItemVO> getMyFeedbackList(String authorization) {
         CurrentUser currentUser = authService.requireUser(authorization);
-
-        List<Map<String, Object>> rows = feedbackMapper.selectFeedbackByUserId(currentUser.getUserId());
+        List<Map<String, Object>> rows = feedbackMapper.selectByUserIdWithDetail(currentUser.getUserId());
         return convertToVO(rows);
     }
 
     public List<FeedbackItemVO> getAllFeedbackList() {
-        List<Map<String, Object>> rows = feedbackMapper.selectAllFeedback();
+        List<Map<String, Object>> rows = feedbackMapper.selectAllWithDetail();
         return convertToVO(rows);
     }
 
     @Transactional
-    public void updateFeedbackStatus(Long feedbackId, String status) {
-        if (feedbackId == null) {
-            throw new BizException("反馈ID不能为空");
-        }
-        if (status == null || (!status.equals("pending") && !status.equals("resolved"))) {
-            throw new BizException("状态只能是 pending 或 resolved");
+    public void handleFeedback(String token, Long id, String status, String reply) {
+        CurrentUser admin = authService.requireUser(token);
+        if (!"admin".equals(admin.getRoleType())) {
+            throw new BizException("无权处理反馈");
         }
 
-        int updated = feedbackMapper.updateStatus(feedbackId, status);
-        if (updated == 0) {
-            throw new BizException("反馈不存在");
+        Feedback f = feedbackMapper.selectById(id);
+        if (f == null) {
+            throw new BizException("反馈记录不存在");
         }
+
+        f.setStatus(status);
+        f.setAdminReply(reply);
+        f.setHandledBy(admin.getUserId());
+        f.setUpdatedAt(LocalDateTime.now());
+
+        feedbackMapper.updateById(f);
     }
 
     private List<FeedbackItemVO> convertToVO(List<Map<String, Object>> rows) {
         List<FeedbackItemVO> list = new ArrayList<>();
-        for (Map<String, Object> row : rows) {
+        for (Map<String, Object> r : rows) {
             FeedbackItemVO vo = new FeedbackItemVO();
-            vo.setId(toLong(row.get("id")));
-            vo.setUserId(toLong(row.get("user_id")));
-            vo.setUserName(toStr(row.get("user_name")));
-            vo.setRole(toStr(row.get("role")));
-            vo.setContent(toStr(row.get("content")));
-            vo.setRelatedOrderId(toLong(row.get("related_order_id")));
-            vo.setOrderTitle(toStr(row.get("order_title")));
-            vo.setStatus(toStr(row.get("status")));
-            vo.setCreatedAt(toDateTime(row.get("created_at")));
+            vo.setId(toLong(r.get("id")));
+            vo.setUserId(toLong(r.get("user_id")));
+            vo.setUserName(r.get("user_name") != null ? r.get("user_name").toString() : "匿名用户");
+            vo.setRole(r.get("role") != null ? r.get("role").toString() : "");
+            vo.setContent(r.get("content") != null ? r.get("content").toString() : "");
+            vo.setFeedbackType(r.get("feedback_type") != null ? r.get("feedback_type").toString() : "其他问题");
+            vo.setRelatedOrderId(toLong(r.get("related_order_id")));
+            vo.setOrderTitle(r.get("order_title") != null ? r.get("order_title").toString() : "无关联任务");
+            vo.setStatus(r.get("status") != null ? r.get("status").toString() : "pending");
+            vo.setAdminReply(r.get("admin_reply") != null ? r.get("admin_reply").toString() : null);
+            vo.setHandledBy(toLong(r.get("handled_by")));
+            vo.setCreatedAt(toDateTime(r.get("created_at")));
+            vo.setUpdatedAt(toDateTime(r.get("updated_at")));
             list.add(vo);
         }
         return list;
@@ -103,13 +112,12 @@ public class FeedbackService {
         }
     }
 
-    private String toStr(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
     private LocalDateTime toDateTime(Object value) {
-        if (value == null) return null;
-        if (value instanceof LocalDateTime) return (LocalDateTime) value;
-        return null;
+    if (value == null) return null;
+    if (value instanceof LocalDateTime) return (LocalDateTime) value;
+    if (value instanceof java.sql.Timestamp) {
+        return ((java.sql.Timestamp) value).toLocalDateTime();
     }
+    return null;
+}
 }

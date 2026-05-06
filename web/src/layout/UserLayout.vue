@@ -40,6 +40,7 @@ const navMap = {
     { label: "首页", to: "/home" },
     { label: "任务大厅", to: "/elderly/tasks" },
     { label: "我的订单", to: "/elderly/orders" },
+    { label: "我的反馈", to: "/elderly/feedback" },
     { label: "个人中心", to: "/elderly/profile" },
     { label: "子女绑定", to: "/elderly/bind" }
   ],
@@ -47,6 +48,7 @@ const navMap = {
     { label: "首页", to: "/home" },
     { label: "发布任务", to: "/employer/publish" },
     { label: "任务管理", to: "/employer/tasks" },
+    { label: "我的反馈", to: "/employer/feedback" },
     { label: "个人中心", to: "/employer/profile" }
   ],
   child: [
@@ -54,6 +56,7 @@ const navMap = {
     { label: "绑定老人", to: "/child/bind" },
     { label: "发布任务", to: "/child/publish" },
     { label: "任务管理", to: "/child/tasks" },
+    { label: "我的反馈", to: "/child/feedback" },
     { label: "老人资料", to: "/child/elderly" },
     { label: "留言沟通", to: "/child/messages" },
     { label: "个人中心", to: "/child/profile" }

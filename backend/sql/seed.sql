@@ -50,6 +50,8 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('message_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM message), 1), true);
 
+SELECT setval('feedback_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM feedback), 1), true);
+
 INSERT INTO user_session (token, user_id, role_type, expired_at)
 VALUES ('demo-elderly-seed-token', 1, 'elderly', NULL)
 ON CONFLICT (token) DO NOTHING;
