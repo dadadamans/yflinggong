@@ -56,7 +56,6 @@ function formatTime(time) {
       date = new Date(time.replace(" ", "T"));
     }
     if (!isNaN(date.getTime())) {
-      date.setHours(date.getHours() + 8);
       const pad = (n) => String(n).padStart(2, "0");
       return `${pad(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
