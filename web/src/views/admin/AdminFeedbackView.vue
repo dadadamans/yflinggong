@@ -65,6 +65,7 @@
             <th>身份</th>
             <th>问题类型</th>
             <th>反馈内容</th>
+            <th>关联订单</th>
             <th>状态</th>
             <th>提交时间</th>
             <th class="text-center">操作</th>
@@ -82,6 +83,10 @@
             <td><span class="type-text">{{ feedbackTypeText(item.feedbackType) }}</span></td>
             <td class="content-cell">
               <div class="content-tooltip" :title="item.content">{{ item.content }}</div>
+            </td>
+            <td>
+              <span v-if="item.relatedOrderId" class="order-tag">#{{ item.relatedOrderId }}</span>
+              <span v-else class="text-muted">-</span>
             </td>
             <td>
               <span class="status-pill" :class="'status-' + item.status">
@@ -135,6 +140,11 @@
                   </span>
                 </div>
                 <span class="time-stamp">{{ formatDate(activeFeedback.createdAt) }}</span>
+              </div>
+              
+              <div v-if="activeFeedback.relatedOrderId" class="related-order-info">
+                <span class="info-icon">📋</span>
+                <span>关联订单：#{{ activeFeedback.relatedOrderId }}</span>
               </div>
               
               <div class="content-bubble">
@@ -408,11 +418,36 @@ onMounted(loadData);
 .status-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
 .status-resolved { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
 
-.content-cell { max-width: 220px; }
+.content-cell { max-width: 180px; }
 .content-tooltip { 
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
   color: #8c6a5a; font-style: italic;
 }
+
+.order-tag {
+  background: #fff7ed;
+  color: #c2410c;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+}
+.text-muted { color: #a68d80; }
+
+.related-order-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  color: #c2410c;
+  margin-top: 12px;
+}
+.info-icon { font-size: 14px; }
 
 .btn-action {
   padding: 8px 16px;
