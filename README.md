@@ -19,6 +19,18 @@
 | 前端 | Vue 3 + Vite + Element Plus + Pinia + Vue Router |
 | 部署 | Docker + Docker Compose + Nginx |
 
+## 环境要求
+
+在开始之前，请确保你的开发环境已安装以下工具：
+
+| 工具 | 最低版本 | 备注 |
+|---|---|---|
+| Node.js | v18.0.0+ | 推荐使用 LTS 版本 (如 v20) |
+| Package Manager | npm 9+ 或 pnpm 8+ | 推荐使用 pnpm 以获得更快的安装速度 |
+| Java SDK | 17 | 后端运行必需 |
+| PostgreSQL | 14+ | 本地开发时需要 |
+| Docker | 24.0+ | 仅在使用 Docker 部署时需要 |
+
 ## 项目结构
 
 ```
@@ -39,44 +51,70 @@
 
 ## 快速启动
 
-### 方式一：Docker Compose（推荐）
+### Docker Compose 部署（推荐）
+
+#### 前端环境变量 (web/.env)
+
+> Docker 部署时可选，前端代码已内置默认配置。如需自定义可提前修改。
+
+| 变量名 | 说明 | 默认值 |
+|---|---|---|
+| `VITE_API_BASE_URL` | 后端 API 基地址，构建时硬编码进 JS | http://127.0.0.1:8080 |
+| `VITE_APP_TITLE` | 网页标题 | 银发零工网页端 |
+
+#### 部署步骤
 
 ```bash
 # 1. 准备后端环境变量
 cd backend
 cp .env.example .env
-# 编辑 .env 填入数据库和管理员账号密码
+# ⚠️ 必须编辑 .env，将以下占位符替换为实际值，否则后端无法启动
+#   - DB_PASSWORD
+#   - POSTGRES_PASSWORD
+#   - ADMIN_PASSWORD
 
-# 2. 返回根目录启动
+# 2. 编译后端 jar 包（确保已安装 Maven）
+mvn clean package -DskipTests
+# 编译成功后生成 target/silver-job-backend-1.0.0.jar
+
+# 3. 返回根目录启动
 cd ..
+mkdir -p uploads
 docker compose up -d --build
+```
+
+> **注意**：
+> - 后端 Dockerfile 只负责运行 jar，不含 Maven，必须先在本地编译
+> - `.env` 中的 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 无默认值，不修改会导致后端启动失败
+> - Docker 启动时会自动执行 `schema.sql` 初始化数据库（仅首次启动时），不会自动导入测试数据
+
+#### 后端环境变量说明 (backend/.env)
+
+| 变量名 | 说明 |
+|---|---|
+| `DB_NAME` | 数据库名称 |
+| `DB_USERNAME` | 数据库用户名 |
+| `DB_PASSWORD` | 数据库密码 |
+| `POSTGRES_DB` | Postgres 数据库名 |
+| `POSTGRES_USER` | Postgres 用户名 |
+| `POSTGRES_PASSWORD` | Postgres 密码 |
+| `ADMIN_USERNAME` | 管理员用户名 |
+| `ADMIN_PASSWORD` | 管理员密码 |
+| `ADMIN_NICKNAME` | 管理员昵称 |
+| `ADMIN_REAL_NAME` | 管理员真实姓名 |
+| `ADMIN_MOBILE` | 管理员手机号 |
+
+（可选）导入测试数据以便快速体验：
+
+```bash
+# 等待容器启动完成后执行
+docker exec -i silver-job-db psql -U postgres -d oldboss < backend/sql/seed.sql
 ```
 
 访问：
 
 - 前端：http://127.0.0.1:3000
 - 后端 API：http://127.0.0.1:8080
-
-### 方式二：本地开发
-
-**后端**
-
-```bash
-cd backend
-# 确保本地 PostgreSQL 已运行
-psql -U postgres -d oldboss -f sql/schema.sql
-psql -U postgres -d oldboss -f sql/seed.sql
-mvn spring-boot:run
-```
-
-**前端**
-
-```bash
-cd web
-npm install
-cp .env.example .env
-npm run dev
-```
 
 ## 角色说明
 
@@ -143,14 +181,6 @@ npm run dev
 
 - `GET /api/admin/stats` - 平台数据统计
 
-## 默认账号
-
-启动后使用以下管理员账号登录管理端：
-
-```
-用户名：admin
-密码：见 backend/.env 中的 ADMIN_PASSWORD
-```
 
 ## 许可证
 
